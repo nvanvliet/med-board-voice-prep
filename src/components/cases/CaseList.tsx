@@ -20,6 +20,11 @@ export default function CaseList() {
     );
   }
   
+  // Sort cases by date in descending order (newest first)
+  const sortedCases = [...cases].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  
   const handleCaseClick = (caseId: string) => {
     if (editingCaseId) return;
     
@@ -54,7 +59,7 @@ export default function CaseList() {
   
   return (
     <div className="space-y-3">
-      {cases.map((caseItem) => {
+      {sortedCases.map((caseItem) => {
         const date = new Date(caseItem.date).toLocaleDateString();
         const messageCount = caseItem.messages.length;
         const isEditing = editingCaseId === caseItem.id;

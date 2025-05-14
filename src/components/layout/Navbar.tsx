@@ -17,6 +17,11 @@ export default function Navbar() {
   const [editingFavoriteId, setEditingFavoriteId] = useState<string | null>(null);
   const [editedTitle, setEditedTitle] = useState('');
   
+  // Sort favorite cases by date in descending order (newest first)
+  const sortedFavorites = [...favoriteCases].sort((a, b) => 
+    new Date(b.date).getTime() - new Date(a.date).getTime()
+  );
+  
   const handleCaseClick = (caseId: string) => {
     if (editingFavoriteId) return;
     
@@ -97,7 +102,7 @@ export default function Navbar() {
                       </div>
                     ) : (
                       <div className="space-y-4">
-                        {favoriteCases.map((caseItem) => {
+                        {sortedFavorites.map((caseItem) => {
                           const date = new Date(caseItem.date).toLocaleDateString();
                           const isEditing = editingFavoriteId === caseItem.id;
                           

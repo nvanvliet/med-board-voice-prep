@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -49,8 +48,10 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   }, [cases, user]);
 
-  // Get favorite cases
-  const favoriteCases = cases.filter(c => c.favorite);
+  // Get favorite cases (sorted by date)
+  const favoriteCases = cases
+    .filter(c => c.favorite)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const startNewCase = () => {
     if (!user) {
@@ -206,7 +207,8 @@ export function CaseProvider({ children }: { children: ReactNode }) {
 
   return (
     <CaseContext.Provider value={{
-      cases,
+      // Return sorted cases
+      cases: [...cases].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       currentCase,
       messages,
       startNewCase,
