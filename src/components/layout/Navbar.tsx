@@ -116,6 +116,7 @@ export default function Navbar() {
                                         onChange={(e) => setEditedTitle(e.target.value)}
                                         className="h-8 text-sm"
                                         autoFocus
+                                        onFocus={(e) => e.target.select()}
                                         onKeyDown={(e) => {
                                           if (e.key === 'Enter') {
                                             handleSaveTitle(caseItem.id, e as unknown as React.MouseEvent);

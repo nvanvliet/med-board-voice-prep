@@ -80,6 +80,14 @@ export default function CaseTranscript({
               onChange={(e) => setEditedTitle(e.target.value)}
               className="text-xl font-semibold h-10"
               autoFocus
+              onFocus={(e) => e.target.select()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  handleSaveTitle();
+                } else if (e.key === 'Escape') {
+                  handleCancelEdit();
+                }
+              }}
             />
             <Button variant="ghost" size="icon" onClick={handleSaveTitle}>
               <Check size={18} />
