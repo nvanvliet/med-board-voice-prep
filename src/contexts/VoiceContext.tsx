@@ -53,19 +53,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Use the ElevenLabs conversation hook
   const conversation = useConversation({
     onMessage: (message: ElevenLabsMessage) => {
-      console.log('ElevenLabs message:', message);
+      console.log('ElevenLabs message received:', message);
       
       // Update transcription for user messages in progress
-      if (message.source === 'user' && message.is_final === false) {
+      if (message.source === 'user') {
+        // Always update live transcription, regardless of is_final
+        console.log('Setting transcription to:', message.message);
         setTranscription(message.message);
-      }
-      
-      // Forward final messages from ElevenLabs to the chat interface
-      if (message.source === 'user' && message.is_final === true) {
-        addMessage(message.message, 'user');
-        setTranscription(''); // Clear transcription once the message is final
+        
+        // Only add to messages if final
+        if (message.is_final === true) {
+          console.log('Adding final user message to chat');
+          addMessage(message.message, 'user');
+        }
       }
       else if (message.source === 'ai') {
+        console.log('Adding AI message to chat');
+        setTranscription(''); // Clear user transcription when AI responds
         addMessage(message.message, 'ai');
         speak(message.message);
       }
@@ -114,6 +118,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Only start a new session if one isn't already active
       if (!sessionActive) {
+        console.log('Starting new ElevenLabs session');
         // Connect to ElevenLabs agent
         await conversation.startSession({
           agentId: AGENT_ID
@@ -126,6 +131,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Update audio level with animation frame
       updateAudioLevel();
+      
+      console.log('Connected to ElevenLabs agent, listening active');
     } catch (error) {
       console.error('Failed to connect to ElevenLabs agent:', error);
       addMessage("Failed to connect to ElevenLabs agent. Please check your microphone permissions.", 'ai');
@@ -140,6 +147,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setAudioLevel(0);
       setTranscription(''); // Clear transcription when disconnecting
       setSessionActive(false);
+      console.log('Disconnected from ElevenLabs agent');
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
     }
@@ -149,15 +157,19 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const toggleMicrophone = () => {
     if (isListening) {
       // If currently listening, just mute the microphone
+      console.log('Muting microphone, conversation continues');
       setIsListening(false);
       setAudioLevel(0);
+      setTranscription(''); // Clear transcription when muting
     } else {
       // If not listening, resume microphone
       // Only start a new session if one isn't already active
       if (sessionActive) {
+        console.log('Unmuting microphone, conversation continues');
         setIsListening(true);
         updateAudioLevel();
       } else {
+        console.log('Starting new conversation and unmuting');
         connectToAgent();
       }
     }

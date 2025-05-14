@@ -9,11 +9,25 @@ export default function ConversationView() {
   const { messages, endCurrentCase, currentCase } = useCase();
   const { isListening, isSpeaking, audioLevel, transcription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [lastTranscription, setLastTranscription] = useState('');
 
-  // Auto-scroll to bottom when messages change
+  // Store last valid transcription to avoid UI flicker
+  useEffect(() => {
+    if (transcription && transcription.trim() !== '') {
+      setLastTranscription(transcription);
+    }
+  }, [transcription]);
+
+  // Auto-scroll to bottom when messages change or transcription updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, transcription]);
+  }, [messages, lastTranscription]);
+
+  // Debug logging
+  useEffect(() => {
+    console.log("Current transcription:", transcription);
+    console.log("Is listening:", isListening);
+  }, [transcription, isListening]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -39,10 +53,10 @@ export default function ConversationView() {
             ))}
             
             {/* Show live transcript if there's text and we're listening */}
-            {transcription && isListening && (
+            {isListening && lastTranscription && (
               <div className="ml-auto max-w-[80%] mb-4">
                 <div className="bg-medical-purple text-white rounded-lg rounded-br-none p-4">
-                  {transcription}
+                  {lastTranscription}
                 </div>
                 <div className="text-xs text-gray-500 mt-1 text-right">
                   {new Date().toLocaleTimeString('en-US', {
