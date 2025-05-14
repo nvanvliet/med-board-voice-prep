@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -76,6 +75,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setTranscription(message.message);
         // Add it to the messages history
         addMessage(message.message, 'ai');
+        
+        // Clear transcription once added to history to avoid duplication
+        setTimeout(() => {
+          setTranscription('');
+        }, 500);
+        
         // Also trigger text-to-speech
         speak(message.message);
       }
