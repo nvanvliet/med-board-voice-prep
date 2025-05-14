@@ -43,21 +43,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Initialize the ElevenLabs conversation
   const conversation = useConversation({
     onMessage: (message) => {
-      // Only process if message includes text
-      if (message.text) {
-        if (message.role === 'user') {
-          // If it's a user message
-          if (message.final) {
+      // Log the message to debug structure
+      console.log('Received message from ElevenLabs:', message);
+      
+      // Check if message has correct structure
+      if ('message' in message && 'source' in message) {
+        // Handle the message based on its source (user or assistant)
+        const messageText = message.message;
+        const source = message.source;
+        
+        // Check if it's a user message and handle transcription
+        if (source === 'user') {
+          // For user messages, check if it's final or interim transcription
+          // Since we don't have a 'final' property directly, look for patterns
+          // that might indicate a final transcription
+          const isFinal = messageText.trim().endsWith('.') || 
+                          messageText.trim().endsWith('?') || 
+                          messageText.trim().endsWith('!');
+          
+          if (isFinal) {
             // Final user transcript - add to messages
-            addMessage(message.text, 'user');
+            addMessage(messageText, 'user');
             setCurrentTranscription(null);
           } else {
             // Ongoing transcription - update the current transcription
-            setCurrentTranscription(message.text);
+            setCurrentTranscription(messageText);
           }
-        } else if (message.role === 'assistant') {
+        } 
+        // Check if it's an AI assistant message
+        else if (source === 'assistant') {
           // Add AI responses to the conversation
-          addMessage(message.text, 'ai');
+          addMessage(messageText, 'ai');
         }
       }
     },
