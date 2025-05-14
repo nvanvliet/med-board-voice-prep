@@ -36,14 +36,19 @@ export default function ConversationView() {
             </div>
           ) : (
             <div className="conversation-history space-y-4">
+              {/* Display all previous messages */}
               {messages.map((message) => (
                 <MessageBubble key={message.id} message={message} />
               ))}
             </div>
           )}
           
-          {/* Show transcription bubble if available - it will stay visible */}
-          {transcription && (
+          {/* Show live transcription bubble if available and not already in messages */}
+          {transcription && 
+            !messages.some(msg => 
+              msg.text === transcription && 
+              ((isSpeaking && msg.sender === 'ai') || (!isSpeaking && msg.sender === 'user'))
+            ) && (
             <div className={`${isSpeaking ? 'mr-auto' : 'ml-auto'} max-w-[80%]`}>
               <div className={`${
                 isSpeaking
@@ -51,7 +56,6 @@ export default function ConversationView() {
                   : 'bg-[#1A1F2C] text-white rounded-br-none'
                 } rounded-lg p-4`}>
                 {transcription}
-                {/* Removed the animated typing indicator with ellipses */}
               </div>
               <div className={`text-xs text-gray-500 mt-1 ${isSpeaking ? 'text-left' : 'text-right'}`}>
                 {new Date().toLocaleTimeString('en-US', {
