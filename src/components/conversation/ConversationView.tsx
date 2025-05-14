@@ -51,8 +51,7 @@ export default function ConversationView() {
                   : 'bg-[#1A1F2C] text-white rounded-br-none'
                 } rounded-lg p-4`}>
                 {transcription}
-                {/* Only show animated typing indicator when actively speaking/listening */}
-                {isListening && <span className="inline-block ml-1 animate-pulse">...</span>}
+                {/* Removed the animated typing indicator with ellipses */}
               </div>
               <div className={`text-xs text-gray-500 mt-1 ${isSpeaking ? 'text-left' : 'text-right'}`}>
                 {new Date().toLocaleTimeString('en-US', {
