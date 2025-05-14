@@ -121,7 +121,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       // Clear the current case state
       setCurrentCase(null);
       setMessages([]);
-      toast.info('Case ended');
+      toast.info('Case ended and saved to My Cases');
     }
   };
 
