@@ -8,10 +8,11 @@ import { Download, Heart, Home, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CaseList from '../cases/CaseList';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const { favoriteCases } = useCase();
+  const { favoriteCases, toggleFavorite, exportCase } = useCase();
   
   return (
     <header className="border-b bg-white">
@@ -104,18 +105,6 @@ export default function Navbar() {
                   </Tabs>
                 </SheetContent>
               </Sheet>
-              
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button variant="outline">Saved Cases</Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Saved Cases</DialogTitle>
-                  </DialogHeader>
-                  <p>This feature will be implemented in the full version.</p>
-                </DialogContent>
-              </Dialog>
               
               <Dialog>
                 <DialogTrigger asChild>
