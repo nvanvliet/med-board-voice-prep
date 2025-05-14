@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -13,6 +12,8 @@ interface CaseContextType {
   saveCurrentCase: (title?: string) => void;
   addMessage: (text: string, sender: 'user' | 'ai') => void;
   exportCase: (caseId: string) => void;
+  toggleFavorite: (caseId: string) => void;
+  favoriteCases: Case[];
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -45,6 +46,9 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(`medical-cases-${user.id}`, JSON.stringify(cases));
     }
   }, [cases, user]);
+
+  // Get favorite cases
+  const favoriteCases = cases.filter(c => c.favorite);
 
   const startNewCase = () => {
     if (!user) {
@@ -150,6 +154,28 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     toast.success('Case exported successfully');
   };
 
+  const toggleFavorite = (caseId: string) => {
+    setCases(prev => {
+      return prev.map(c => {
+        if (c.id === caseId) {
+          return { ...c, favorite: !c.favorite };
+        }
+        return c;
+      });
+    });
+
+    // Find the case to show appropriate toast message
+    const targetCase = cases.find(c => c.id === caseId);
+    if (targetCase) {
+      const isFavorite = targetCase.favorite;
+      if (isFavorite) {
+        toast.info(`Removed "${targetCase.title}" from favorites`);
+      } else {
+        toast.success(`Added "${targetCase.title}" to favorites`);
+      }
+    }
+  };
+
   return (
     <CaseContext.Provider value={{
       cases,
@@ -159,7 +185,9 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       endCurrentCase,
       saveCurrentCase,
       addMessage,
-      exportCase
+      exportCase,
+      toggleFavorite,
+      favoriteCases
     }}>
       {children}
     </CaseContext.Provider>

@@ -3,12 +3,15 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
-import { Download, Home, LogOut } from 'lucide-react';
+import { useCase } from '@/contexts/CaseContext';
+import { Download, Heart, Home, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CaseList from '../cases/CaseList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
+  const { favoriteCases } = useCase();
   
   return (
     <header className="border-b bg-white">
@@ -23,25 +26,92 @@ export default function Navbar() {
             <>
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline">My Cases</Button>
+                  <Button variant="outline" className="flex items-center gap-1">
+                    My Cases
+                    {favoriteCases.length > 0 && (
+                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
+                        {favoriteCases.length}
+                      </span>
+                    )}
+                  </Button>
                 </SheetTrigger>
                 <SheetContent>
                   <SheetHeader>
                     <SheetTitle>My Cases</SheetTitle>
                   </SheetHeader>
-                  <div className="py-4">
-                    <CaseList />
-                  </div>
+                  <Tabs defaultValue="all" className="mt-4">
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="all">All Cases</TabsTrigger>
+                      <TabsTrigger value="favorites" className="flex items-center gap-1">
+                        <Heart size={14} className="fill-current" />
+                        <span>Favorites</span>
+                      </TabsTrigger>
+                    </TabsList>
+                    <TabsContent value="all" className="py-4">
+                      <CaseList />
+                    </TabsContent>
+                    <TabsContent value="favorites" className="py-4">
+                      {favoriteCases.length === 0 ? (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground">No favorite cases yet</p>
+                          <p className="text-sm mt-2">Click the heart icon to add cases to favorites</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4">
+                          {favoriteCases.map((caseItem) => {
+                            const date = new Date(caseItem.date).toLocaleDateString();
+                            const messageCount = caseItem.messages.length;
+                            
+                            return (
+                              <Card key={caseItem.id}>
+                                <CardHeader className="pb-2">
+                                  <div className="flex items-center justify-between">
+                                    <CardTitle>{caseItem.title}</CardTitle>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8"
+                                      onClick={() => toggleFavorite(caseItem.id)}
+                                    >
+                                      <Heart size={18} className="fill-red-500 text-red-500" />
+                                      <span className="sr-only">Remove from favorites</span>
+                                    </Button>
+                                  </div>
+                                  <CardDescription>{date}</CardDescription>
+                                </CardHeader>
+                                <CardContent>
+                                  <p className="text-sm text-muted-foreground">
+                                    {messageCount} message{messageCount !== 1 ? 's' : ''}
+                                  </p>
+                                </CardContent>
+                                <CardFooter>
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="ml-auto flex items-center gap-1"
+                                    onClick={() => exportCase(caseItem.id)}
+                                  >
+                                    <Download size={16} />
+                                    <span>Export</span>
+                                  </Button>
+                                </CardFooter>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </TabsContent>
+                  </Tabs>
                 </SheetContent>
               </Sheet>
               
               <Dialog>
                 <DialogTrigger asChild>
-                  <Button variant="outline">Save Case</Button>
+                  <Button variant="outline">Saved Cases</Button>
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>Save Current Case</DialogTitle>
+                    <DialogTitle>Saved Cases</DialogTitle>
                   </DialogHeader>
                   <p>This feature will be implemented in the full version.</p>
                 </DialogContent>

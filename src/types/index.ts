@@ -17,6 +17,7 @@ export interface Case {
   title: string;
   date: string; // ISO string
   messages: Message[];
+  favorite?: boolean; // New property for favorite cases
 }
 
 export interface AuthContextType {

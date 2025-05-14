@@ -2,10 +2,10 @@
 import { useCase } from '@/contexts/CaseContext';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, Heart } from 'lucide-react';
 
 export default function CaseList() {
-  const { cases, exportCase } = useCase();
+  const { cases, exportCase, toggleFavorite } = useCase();
   
   if (cases.length === 0) {
     return (
@@ -25,7 +25,23 @@ export default function CaseList() {
         return (
           <Card key={caseItem.id}>
             <CardHeader className="pb-2">
-              <CardTitle>{caseItem.title}</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>{caseItem.title}</CardTitle>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={() => toggleFavorite(caseItem.id)}
+                >
+                  <Heart 
+                    size={18} 
+                    className={caseItem.favorite ? "fill-red-500 text-red-500" : "text-muted-foreground"} 
+                  />
+                  <span className="sr-only">
+                    {caseItem.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                  </span>
+                </Button>
+              </div>
               <CardDescription>{date}</CardDescription>
             </CardHeader>
             <CardContent>
