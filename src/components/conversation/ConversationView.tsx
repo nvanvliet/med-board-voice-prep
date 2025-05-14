@@ -42,16 +42,17 @@ export default function ConversationView() {
             </div>
           )}
           
-          {/* Show live transcription bubble only while actively speaking/listening */}
+          {/* Show transcription bubble if available - it will stay visible */}
           {transcription && (
             <div className={`${isSpeaking ? 'mr-auto' : 'ml-auto'} max-w-[80%]`}>
               <div className={`${
                 isSpeaking
                   ? 'bg-[#9b87f5] text-white rounded-bl-none' 
                   : 'bg-[#1A1F2C] text-white rounded-br-none'
-                } rounded-lg p-4 animate-pulse-slow`}>
+                } rounded-lg p-4`}>
                 {transcription}
-                <span className="inline-block ml-1 animate-pulse">...</span>
+                {/* Only show animated typing indicator when actively speaking/listening */}
+                {isListening && <span className="inline-block ml-1 animate-pulse">...</span>}
               </div>
               <div className={`text-xs text-gray-500 mt-1 ${isSpeaking ? 'text-left' : 'text-right'}`}>
                 {new Date().toLocaleTimeString('en-US', {
