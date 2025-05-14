@@ -63,18 +63,18 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         // Only add to chat history if final
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
+          // Don't clear transcription immediately after adding message, wait for the next transcription
           addMessage(message.message, 'user');
-          // Keep transcription visible even after adding final message
         }
       }
       // Handle AI responses
       else if (message.source === 'ai') {
         console.log('Adding AI message to chat');
         
-        // Add AI message to chat history first
+        // First add the message to the chat history
         addMessage(message.message, 'ai');
         
-        // Then update the transcription to show what AI is saying
+        // Then update transcription to show what AI is saying
         setTranscription(message.message);
         
         // Trigger text-to-speech
@@ -132,7 +132,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         });
         setSessionActive(true);
         
-        // Initialize with empty messages to ensure it's visible in the ConversationView
+        // Set a connecting message that will show in the UI
         setTranscription('Connecting to AI assistant...');
         
         // Add the connecting message to the case
@@ -168,7 +168,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsListening(false);
       setAudioLevel(0);
       setSessionActive(false);
-      // Don't clear transcription when disconnecting so the last message stays visible
       console.log('Disconnected from ElevenLabs agent');
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
@@ -184,7 +183,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       console.log('Muting microphone, conversation continues');
       setIsListening(false);
       setAudioLevel(0);
-      // Don't clear transcription when muting to keep messages visible
     } else {
       // If not listening, resume microphone
       // Only start a new session if one isn't already active
@@ -236,8 +234,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));
       
       setIsSpeaking(false);
-      // Don't clear transcription after speaking to keep the message visible
-      // Leave it for the next user input to replace
+      // Do NOT clear transcription after speaking
     } catch (error) {
       console.error('Text-to-speech error', error);
       addMessage("Failed to generate speech.", 'ai');

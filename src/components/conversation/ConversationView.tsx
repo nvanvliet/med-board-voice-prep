@@ -35,20 +35,14 @@ export default function ConversationView() {
               {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
             </div>
           ) : (
-            <div className="conversation-history space-y-4">
-              {/* Display all previous messages */}
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
-            </div>
+            messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))
           )}
           
           {/* Show live transcription bubble if available and not already in messages */}
           {transcription && 
-            !messages.some(msg => 
-              msg.text === transcription && 
-              ((isSpeaking && msg.sender === 'ai') || (!isSpeaking && msg.sender === 'user'))
-            ) && (
+            !messages.some(msg => msg.text === transcription) && (
             <div className={`${isSpeaking ? 'mr-auto' : 'ml-auto'} max-w-[80%]`}>
               <div className={`${
                 isSpeaking
