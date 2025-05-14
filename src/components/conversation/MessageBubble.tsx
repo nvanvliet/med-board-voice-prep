@@ -17,8 +17,8 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
     <div className={`${isUser ? 'ml-auto' : 'mr-auto'} max-w-[80%]`}>
       <div className={`rounded-lg p-4 ${
         isUser 
-          ? 'bg-medical-purple text-white rounded-br-none' 
-          : 'bg-gray-100 text-gray-800 rounded-bl-none'
+          ? 'bg-[#1A1F2C] text-white rounded-br-none' 
+          : 'bg-[#9b87f5] text-white rounded-bl-none'
       }`}>
         {message.text}
       </div>

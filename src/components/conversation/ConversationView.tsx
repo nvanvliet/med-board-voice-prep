@@ -4,6 +4,7 @@ import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import MessageBubble from './MessageBubble';
 import ConversationFooter from './ConversationFooter';
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase } = useCase();
@@ -17,7 +18,7 @@ export default function ConversationView() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      <div className="flex-1 overflow-y-auto p-4">
+      <ScrollArea className="flex-1 p-4">
         {/* Case title display */}
         {currentCase && (
           <div className="sticky top-0 bg-white/80 backdrop-blur-sm dark:bg-background/80 z-10 py-2 px-1 mb-4 border-b">
@@ -46,8 +47,8 @@ export default function ConversationView() {
             <div className={`${isSpeaking ? 'mr-auto' : 'ml-auto'} max-w-[80%]`}>
               <div className={`${
                 isSpeaking
-                  ? 'bg-gray-100 text-gray-800 rounded-bl-none' 
-                  : 'bg-medical-purple text-white rounded-br-none'
+                  ? 'bg-[#9b87f5] text-white rounded-bl-none' 
+                  : 'bg-[#1A1F2C] text-white rounded-br-none'
                 } rounded-lg p-4 animate-pulse-slow`}>
                 {transcription}
                 <span className="inline-block ml-1 animate-pulse">...</span>
@@ -63,7 +64,7 @@ export default function ConversationView() {
           )}
         </div>
         <div ref={messagesEndRef} />
-      </div>
+      </ScrollArea>
       
       <ConversationFooter onEndConversation={endCurrentCase} />
     </div>

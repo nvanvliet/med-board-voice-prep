@@ -65,8 +65,8 @@ export default {
 				},
 				medical: {
 					purple: '#6C5CE7',
-					'purple-light': '#8A7EF6',
-					'purple-dark': '#5549C7',
+					'purple-light': '#9b87f5',
+					'purple-dark': '#1A1F2C',
 					red: '#FF4A4A',
 					'red-dark': '#D83C3C',
 				}
@@ -100,12 +100,21 @@ export default {
 					'50%': {
 						opacity: '0.5',
 					}
+				},
+				'pulse-slow': {
+					'0%, 100%': {
+						opacity: '1',
+					},
+					'50%': {
+						opacity: '0.85',
+					}
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'pulse-recording': 'pulse-recording 1.5s ease-in-out infinite'
+				'pulse-recording': 'pulse-recording 1.5s ease-in-out infinite',
+				'pulse-slow': 'pulse-slow 2s ease-in-out infinite'
 			},
 			backgroundImage: {
 				'medical-pattern': "url('/medical-pattern.png')"
