@@ -25,7 +25,7 @@ export default function ConversationEmpty() {
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)]">
       <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-3">No conversation yet</h2>
+        <h2 className="text-2xl font-semibold mb-3">May the odds be ever in your favor!</h2>
         <p className="text-muted-foreground mb-6">Click the Start Exam button to begin</p>
         
         <Button 
