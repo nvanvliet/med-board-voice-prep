@@ -117,34 +117,16 @@ export default function CaseTranscript({
         <p className="text-sm text-muted-foreground">{date}</p>
       </div>
       
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto border rounded-md p-4">
-        {caseItem.messages.map((message) => {
-          const time = new Date(message.timestamp).toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-          });
-          
-          const isUser = message.sender === 'user';
-          
-          return (
-            <div 
-              key={message.id} 
-              className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}
-            >
-              <div 
-                className={`max-w-[80%] rounded-lg p-3 ${
-                  isUser 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'
-                }`}
-              >
-                <div>{message.text}</div>
-                <div className="text-xs opacity-70 mt-1">{time}</div>
-              </div>
-            </div>
-          );
-        })}
+      <div className="space-y-4 max-h-[60vh] overflow-y-auto border rounded-md p-4 text-center">
+        <div className="py-12">
+          <h3 className="text-xl font-medium mb-4">Case Summary</h3>
+          <p className="text-muted-foreground">
+            This case contains {caseItem.messages.length} messages.
+          </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            You can export this case to view the full transcript.
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -35,27 +35,9 @@ export default function ConversationView() {
               {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
             </div>
           ) : (
-            messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))
-          )}
-          
-          {/* Show current voice transcription while listening */}
-          {currentTranscription && (
-            <div className="ml-auto max-w-[80%]">
-              <div className="rounded-lg p-4 bg-[#1A1F2C] text-white rounded-br-none opacity-70">
-                <div className="flex items-center">
-                  <span>{currentTranscription}</span>
-                  <span className="ml-2 animate-pulse">•</span>
-                </div>
-              </div>
-              <div className="text-xs text-gray-500 mt-1 text-right">
-                {new Date().toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: false
-                })}
-              </div>
+            <div className="text-center p-8">
+              <div className="text-xl font-semibold mb-4">Exam in Progress</div>
+              <p className="text-muted-foreground">Your conversation is being recorded, but the transcript is hidden during the exam.</p>
             </div>
           )}
         </div>

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -66,15 +65,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
             addMessage(messageText, 'user');
             setCurrentTranscription(null);
           } else {
-            // Ongoing transcription - update the current transcription
+            // We no longer show current transcription on screen
+            // But we still track it internally for processing purposes
             setCurrentTranscription(messageText);
           }
         } 
-        // Check if it's an AI assistant message - fix the type comparison here
+        // Check if it's an AI assistant message from ElevenLabs
         else if (source === 'assistant') {
           // In our system we use 'ai' as the message type, but ElevenLabs uses 'assistant'
           // So we need to map 'assistant' from ElevenLabs to 'ai' for our system
-          addMessage(messageText, 'ai');
+          addMessage(messageText, 'ai' as 'user' | 'ai');
         }
       }
     },
