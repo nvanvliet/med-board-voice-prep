@@ -48,7 +48,6 @@ export default function Navbar() {
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-1">
-                    <Heart size={18} className="fill-red-100" />
                     My Favorites
                   </Button>
                 </SheetTrigger>
