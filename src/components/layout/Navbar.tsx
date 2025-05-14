@@ -28,11 +28,6 @@ export default function Navbar() {
                 <SheetTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-1">
                     My Cases
-                    {favoriteCases.length > 0 && (
-                      <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-primary text-[10px] text-primary-foreground">
-                        {favoriteCases.length}
-                      </span>
-                    )}
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
