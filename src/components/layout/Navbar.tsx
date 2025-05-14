@@ -13,6 +13,17 @@ export default function Navbar() {
   const { user, signOut } = useAuth();
   const { favoriteCases, toggleFavorite, exportCase, startNewCase } = useCase();
   
+  const handleCaseClick = (caseId: string) => {
+    // Dispatch custom event to notify the application to show the transcript
+    const event = new CustomEvent('viewCaseTranscript', {
+      detail: { caseId }
+    });
+    document.dispatchEvent(event);
+    
+    // Close the sheet by triggering a click on the document body
+    document.body.click();
+  };
+  
   return (
     <header className="border-b bg-white">
       <div className="container mx-auto flex h-16 items-center px-4">
@@ -65,7 +76,11 @@ export default function Navbar() {
                           const date = new Date(caseItem.date).toLocaleDateString();
                           
                           return (
-                            <Card key={caseItem.id} className="cursor-pointer hover:border-primary/50 transition-colors">
+                            <Card 
+                              key={caseItem.id} 
+                              className="cursor-pointer hover:border-primary/50 transition-colors"
+                              onClick={() => handleCaseClick(caseItem.id)}
+                            >
                               <div className="p-4">
                                 <div className="flex items-center justify-between">
                                   <h3 className="font-medium">{caseItem.title}</h3>
@@ -73,7 +88,10 @@ export default function Navbar() {
                                     variant="ghost" 
                                     size="icon" 
                                     className="h-8 w-8"
-                                    onClick={() => toggleFavorite(caseItem.id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleFavorite(caseItem.id);
+                                    }}
                                   >
                                     <span className="sr-only">Remove from favorites</span>
                                   </Button>

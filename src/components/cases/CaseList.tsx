@@ -3,12 +3,9 @@ import { useCase } from '@/contexts/CaseContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Heart } from 'lucide-react';
-import { useState } from 'react';
-import CaseTranscript from './CaseTranscript';
 
 export default function CaseList() {
   const { cases, exportCase, toggleFavorite } = useCase();
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   
   if (cases.length === 0) {
     return (
@@ -19,7 +16,16 @@ export default function CaseList() {
     );
   }
   
-  const selectedCase = cases.find(c => c.id === selectedCaseId);
+  const handleCaseClick = (caseId: string) => {
+    // Dispatch custom event to notify the application to show the transcript
+    const event = new CustomEvent('viewCaseTranscript', {
+      detail: { caseId }
+    });
+    document.dispatchEvent(event);
+    
+    // Close the sheet by triggering a click on the document body
+    document.body.click();
+  };
   
   return (
     <div className="space-y-3">
@@ -31,11 +37,7 @@ export default function CaseList() {
           <Card 
             key={caseItem.id}
             className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => {
-              setSelectedCaseId(caseItem.id);
-              // Close the sheet by triggering a click on the document body
-              document.body.click();
-            }}
+            onClick={() => handleCaseClick(caseItem.id)}
           >
             <div className="p-4 flex items-center justify-between">
               <div>
