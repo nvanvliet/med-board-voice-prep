@@ -25,6 +25,7 @@ interface VoiceContextType {
   speak: (text: string) => Promise<void>;
   connectToAgent: () => Promise<void>;
   disconnectFromAgent: () => Promise<void>;
+  toggleMicrophone: () => void; // New function for toggling microphone
 }
 
 const defaultConfig: ElevenLabsConfig = {
@@ -46,6 +47,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [transcription, setTranscription] = useState<string>('');
+  const [sessionActive, setSessionActive] = useState(false);
   const { addMessage } = useCase();
 
   // Use the ElevenLabs conversation hook
@@ -95,9 +97,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       }
       
       // End conversation when component unmounts
-      conversation.endSession().catch(console.error);
+      if (sessionActive) {
+        conversation.endSession().catch(console.error);
+      }
     };
-  }, []);
+  }, [sessionActive]);
   
   const setApiKey = (apiKey: string) => {
     setConfig({ ...config, apiKey });
@@ -108,10 +112,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       // Request microphone permission before connecting
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      // Connect to ElevenLabs agent
-      await conversation.startSession({
-        agentId: AGENT_ID
-      });
+      // Only start a new session if one isn't already active
+      if (!sessionActive) {
+        // Connect to ElevenLabs agent
+        await conversation.startSession({
+          agentId: AGENT_ID
+        });
+        setSessionActive(true);
+      }
       
       setIsListening(true);
       setTranscription(''); // Reset transcription when starting a new session
@@ -126,12 +134,32 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   
   const disconnectFromAgent = async () => {
     try {
+      // Only end the session if we're fully disconnecting
       await conversation.endSession();
       setIsListening(false);
       setAudioLevel(0);
       setTranscription(''); // Clear transcription when disconnecting
+      setSessionActive(false);
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
+    }
+  };
+
+  // New function to toggle microphone without ending the conversation
+  const toggleMicrophone = () => {
+    if (isListening) {
+      // If currently listening, just mute the microphone
+      setIsListening(false);
+      setAudioLevel(0);
+    } else {
+      // If not listening, resume microphone
+      // Only start a new session if one isn't already active
+      if (sessionActive) {
+        setIsListening(true);
+        updateAudioLevel();
+      } else {
+        connectToAgent();
+      }
     }
   };
 
@@ -160,7 +188,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   };
 
   const stopListening = () => {
-    disconnectFromAgent();
+    setIsListening(false);
+    setAudioLevel(0);
   };
 
   const speak = async (text: string) => {
@@ -191,7 +220,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       stopListening,
       speak,
       connectToAgent,
-      disconnectFromAgent
+      disconnectFromAgent,
+      toggleMicrophone
     }}>
       {children}
     </VoiceContext.Provider>

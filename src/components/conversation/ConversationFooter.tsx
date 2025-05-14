@@ -13,7 +13,14 @@ interface ConversationFooterProps {
 
 export default function ConversationFooter({ onEndConversation }: ConversationFooterProps) {
   const [inputText, setInputText] = useState('');
-  const { isListening, isSpeaking, audioLevel, connectToAgent, disconnectFromAgent } = useVoice();
+  const { 
+    isListening, 
+    isSpeaking, 
+    audioLevel, 
+    connectToAgent, 
+    disconnectFromAgent,
+    toggleMicrophone
+  } = useVoice();
   const { addMessage } = useCase();
   
   const handleSendMessage = () => {
@@ -27,14 +34,6 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter') {
       handleSendMessage();
-    }
-  };
-  
-  const toggleRecording = async () => {
-    if (isListening) {
-      disconnectFromAgent();
-    } else {
-      await connectToAgent();
     }
   };
   
@@ -52,10 +51,10 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
           size="icon"
           variant="outline"
           className={isListening ? "bg-medical-red text-white hover:bg-medical-red-dark" : ""}
-          onClick={toggleRecording}
+          onClick={toggleMicrophone}
           disabled={isSpeaking}
         >
-          {isListening ? <Circle size={18} /> : <Mic size={18} />}
+          {isListening ? <MicOff size={18} /> : <Mic size={18} />}
         </Button>
         
         <div className="relative flex-1">
