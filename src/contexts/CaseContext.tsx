@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -113,6 +114,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
 
   const endCurrentCase = () => {
     if (currentCase && messages.length > 0) {
+      // Always save the case to "My Cases" when ending a conversation
       saveCurrentCase();
     }
     setCurrentCase(null);
