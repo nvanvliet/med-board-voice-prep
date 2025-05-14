@@ -6,17 +6,12 @@ import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 export default function HomePage() {
   const { user } = useAuth();
   const { currentCase } = useCase();
-  const { isConfigured, setApiKey } = useVoice();
-  const [showApiDialog, setShowApiDialog] = useState(false);
-  const [apiKey, setApiKeyState] = useState('');
+  const { isConfigured } = useVoice();
   
   // If no user is logged in, show a prompt
   if (!user) {
@@ -36,17 +31,6 @@ export default function HomePage() {
     );
   }
   
-  // If user is logged in but API is not configured
-  const showApiKeyInput = user && !isConfigured && !currentCase;
-  
-  const handleApiKeySave = () => {
-    if (apiKey) {
-      setApiKey(apiKey);
-      setApiKeyState('');
-      setShowApiDialog(false);
-    }
-  };
-  
   return (
     <div className="min-h-screen flex flex-col medical-bg">
       <Navbar />
@@ -57,35 +41,6 @@ export default function HomePage() {
           <ConversationView />
         )}
       </div>
-      
-      {/* API Key Dialog */}
-      <Dialog open={showApiKeyInput || showApiDialog} onOpenChange={setShowApiDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>ElevenLabs API Setup Required</DialogTitle>
-            <DialogDescription>
-              To use the voice features, you need to provide an ElevenLabs API key.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">ElevenLabs API Key</label>
-              <Input 
-                type="password" 
-                placeholder="Enter your API key" 
-                value={apiKey}
-                onChange={(e) => setApiKeyState(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground mt-1">
-                Get your API key at <a href="https://elevenlabs.io" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">elevenlabs.io</a>
-              </p>
-            </div>
-            <Button onClick={handleApiKeySave} className="w-full">
-              Save API Key
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

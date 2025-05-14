@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
 
@@ -18,114 +17,103 @@ interface VoiceContextType {
 const defaultConfig: ElevenLabsConfig = {
   voiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
   modelId: 'eleven_multilingual_v2',
+  apiKey: 'using-convai-widget', // Using Convai widget instead of direct API
 };
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
-export function VoiceProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState<ElevenLabsConfig>(() => {
-    const savedKey = localStorage.getItem('elevenlabs-api-key');
-    return {
-      ...defaultConfig,
-      apiKey: savedKey || undefined
+declare global {
+  interface Window {
+    elevenLabsConvai?: {
+      startConversation: () => void;
+      endConversation: () => void;
+      isWidgetOpen: () => boolean;
+      openWidget: () => void;
+      closeWidget: () => void;
     };
-  });
+  }
+}
+
+export function VoiceProvider({ children }: { children: ReactNode }) {
+  const [config, setConfig] = useState<ElevenLabsConfig>(defaultConfig);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  const isConfigured = Boolean(config.apiKey);
+  // With Convai widget, we're always configured
+  const isConfigured = true;
+  
+  useEffect(() => {
+    // Check if the Convai widget is loaded
+    const checkConvaiWidget = setInterval(() => {
+      if (window.elevenLabsConvai) {
+        clearInterval(checkConvaiWidget);
+        console.log('ElevenLabs Convai widget loaded');
+      }
+    }, 1000);
+    
+    return () => clearInterval(checkConvaiWidget);
+  }, []);
   
   const setApiKey = (apiKey: string) => {
-    localStorage.setItem('elevenlabs-api-key', apiKey);
-    setConfig({ ...config, apiKey });
-    toast.success('ElevenLabs API key saved');
+    // No longer needed with Convai widget, but keeping the function for compatibility
+    toast.success('Using integrated ElevenLabs Convai widget');
   };
 
   const startListening = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      toast.error('Media devices not supported in this browser');
-      return;
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Create audio context for visualization
-      const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const analyser = context.createAnalyser();
-      const microphone = context.createMediaStreamSource(stream);
-      microphone.connect(analyser);
-      
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-      
-      // Monitor audio levels
-      const checkAudioLevel = () => {
-        if (!isListening) return;
-        
-        analyser.getByteFrequencyData(dataArray);
-        let sum = 0;
-        for (let i = 0; i < bufferLength; i++) {
-          sum += dataArray[i];
+    if (window.elevenLabsConvai) {
+      try {
+        // Open the Convai widget
+        if (!window.elevenLabsConvai.isWidgetOpen()) {
+          window.elevenLabsConvai.openWidget();
         }
-        const average = sum / bufferLength;
-        setAudioLevel(average / 256); // Normalize to 0-1
         
-        requestAnimationFrame(checkAudioLevel);
-      };
-      
-      // Setup recording
-      const recorder = new MediaRecorder(stream);
-      const chunks: BlobPart[] = [];
-      
-      recorder.ondataavailable = (e) => {
-        chunks.push(e.data);
-      };
-      
-      recorder.onstop = async () => {
-        const blob = new Blob(chunks, { type: 'audio/webm' });
-        // In a real implementation, this is where we'd send the audio to ElevenLabs
-        // or another speech-to-text service
+        // Start the conversation
+        window.elevenLabsConvai.startConversation();
+        setIsListening(true);
         
-        setIsListening(false);
-        stream.getTracks().forEach(track => track.stop());
-      };
-      
-      setMediaRecorder(recorder);
-      setAudioContext(context);
-      setIsListening(true);
-      recorder.start();
-      checkAudioLevel();
-      
-    } catch (error) {
-      console.error('Error accessing microphone', error);
-      toast.error('Could not access microphone');
+        // Simulate audio level for UI feedback
+        const simulateAudioLevel = () => {
+          if (!isListening) return;
+          setAudioLevel(Math.random() * 0.5 + 0.1); // Random value between 0.1 and 0.6
+          requestAnimationFrame(simulateAudioLevel);
+        };
+        
+        simulateAudioLevel();
+      } catch (error) {
+        console.error('Error starting Convai widget', error);
+        toast.error('Could not start conversation');
+      }
+    } else {
+      toast.error('ElevenLabs Convai widget not loaded yet');
     }
   };
 
   const stopListening = () => {
+    if (window.elevenLabsConvai) {
+      window.elevenLabsConvai.endConversation();
+      if (window.elevenLabsConvai.isWidgetOpen()) {
+        window.elevenLabsConvai.closeWidget();
+      }
+    }
+    
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }
+    
     setIsListening(false);
     setAudioLevel(0);
   };
 
   const speak = async (text: string) => {
-    if (!isConfigured) {
-      toast.error('ElevenLabs API key not configured');
-      return;
-    }
-    
     try {
       setIsSpeaking(true);
       
-      // In a real implementation, this would call the ElevenLabs API
-      console.log(`Speaking: "${text}" with voice ${config.voiceId} using model ${config.modelId}`);
+      // With Convai widget, we don't need to directly handle speaking
+      // This function is kept for compatibility
+      console.log(`Text to speak: "${text}"`);
       
       // Simulate speech time based on text length
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));

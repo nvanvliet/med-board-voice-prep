@@ -1,19 +1,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
-import { useVoice } from '@/contexts/VoiceContext';
-import { Download, Home, LogOut, User } from 'lucide-react';
-import { useState } from 'react';
+import { Download, Home, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CaseList from '../cases/CaseList';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const { setApiKey, isConfigured } = useVoice();
-  const [apiKey, setApiKeyState] = useState('');
   
   return (
     <header className="border-b bg-white">
@@ -67,52 +62,16 @@ export default function Navbar() {
                 </DialogContent>
               </Dialog>
 
-              <Dialog>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="ghost">
-                    {user.email}
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Voice API Settings</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 py-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">ElevenLabs API Key</label>
-                      <Input 
-                        type="password" 
-                        placeholder={isConfigured ? "••••••••••••••••" : "Enter your API key"} 
-                        value={apiKey}
-                        onChange={(e) => setApiKeyState(e.target.value)}
-                      />
-                    </div>
-                    <Button onClick={() => {
-                      if (apiKey) setApiKey(apiKey);
-                      setApiKeyState('');
-                    }}>
-                      Save API Key
-                    </Button>
-                  </div>
-                  <div className="border-t pt-4">
-                    <Button 
-                      variant="outline" 
-                      className="w-full flex items-center justify-center gap-2"
-                      onClick={signOut}
-                    >
-                      <LogOut size={16} />
-                      <span>Sign Out</span>
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button onClick={signOut} size="sm" variant="ghost">
+                <LogOut size={18} className="mr-2" />
+                Sign Out
+              </Button>
             </>
           )}
           
           {!user && (
             <Button asChild>
               <Link to="/auth">
-                <User size={18} className="mr-2" />
                 Sign In
               </Link>
             </Button>
