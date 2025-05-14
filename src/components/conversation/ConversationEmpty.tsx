@@ -18,8 +18,8 @@ export default function ConversationEmpty() {
     startNewCase();
     
     // Then connect to the ElevenLabs agent and automatically unmute the microphone
-    setTimeout(() => {
-      connectToAgent();
+    setTimeout(async () => {
+      await connectToAgent();
       toast.success('Starting new exam session', {
         position: 'top-center',
         duration: 2000,
