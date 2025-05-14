@@ -12,8 +12,8 @@ export interface VoiceContextType {
   startListening: () => Promise<void>;
   stopListening: () => void;
   speak: (text: string) => Promise<void>;
-  connectToAgent: () => Promise<void>;
-  disconnectFromAgent: () => Promise<void>;
+  connectToAgent: () => Promise<boolean>;
+  disconnectFromAgent: () => Promise<boolean>;
   toggleMicrophone: () => void;
 }
 
