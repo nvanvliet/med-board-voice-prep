@@ -42,7 +42,7 @@ export default function ConversationView() {
             </div>
           )}
           
-          {/* Show live transcription bubble */}
+          {/* Show live transcription bubble only while actively speaking/listening */}
           {transcription && (
             <div className={`${isSpeaking ? 'mr-auto' : 'ml-auto'} max-w-[80%]`}>
               <div className={`${
