@@ -12,7 +12,7 @@ import CaseTranscript from '@/components/cases/CaseTranscript';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { currentCase, cases, exportCase, toggleFavorite } = useCase();
+  const { currentCase, cases, exportCase, toggleFavorite, updateCaseTitle } = useCase();
   const { isConfigured } = useVoice();
   const [viewingCaseId, setViewingCaseId] = useState<string | null>(null);
   
@@ -60,6 +60,7 @@ export default function HomePage() {
               onBack={() => setViewingCaseId(null)} 
               onExport={() => exportCase(viewingCase.id)}
               onToggleFavorite={() => toggleFavorite(viewingCase.id)}
+              onUpdateTitle={updateCaseTitle}
             />
           </div>
         ) : (

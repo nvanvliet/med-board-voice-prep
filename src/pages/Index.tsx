@@ -6,7 +6,7 @@ import { useCase } from '@/contexts/CaseContext';
 
 const Index = () => {
   const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const { cases, exportCase, toggleFavorite } = useCase();
+  const { cases, exportCase, toggleFavorite, updateCaseTitle } = useCase();
 
   const selectedCase = selectedCaseId ? cases.find(c => c.id === selectedCaseId) : null;
   
@@ -31,6 +31,7 @@ const Index = () => {
           onBack={() => setSelectedCaseId(null)} 
           onExport={() => exportCase(selectedCase.id)}
           onToggleFavorite={() => toggleFavorite(selectedCase.id)}
+          onUpdateTitle={updateCaseTitle}
         />
       </div>
     );

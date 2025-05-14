@@ -13,6 +13,7 @@ interface CaseContextType {
   addMessage: (text: string, sender: 'user' | 'ai') => void;
   exportCase: (caseId: string) => void;
   toggleFavorite: (caseId: string) => void;
+  updateCaseTitle: (caseId: string, newTitle: string) => void;
   favoriteCases: Case[];
 }
 
@@ -176,6 +177,31 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateCaseTitle = (caseId: string, newTitle: string) => {
+    if (!newTitle.trim()) return;
+    
+    setCases(prev => {
+      const updatedCases = prev.map(c => {
+        if (c.id === caseId) {
+          return { ...c, title: newTitle.trim() };
+        }
+        return c;
+      });
+      
+      // If this is the current case, update it too
+      if (currentCase?.id === caseId) {
+        setCurrentCase(prev => {
+          if (prev) return { ...prev, title: newTitle.trim() };
+          return prev;
+        });
+      }
+      
+      return updatedCases;
+    });
+    
+    toast.success(`Case title updated successfully`);
+  };
+
   return (
     <CaseContext.Provider value={{
       cases,
@@ -187,6 +213,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       addMessage,
       exportCase,
       toggleFavorite,
+      updateCaseTitle,
       favoriteCases
     }}>
       {children}

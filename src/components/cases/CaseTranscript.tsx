@@ -1,24 +1,47 @@
 
 import { Button } from '@/components/ui/button';
 import { Case } from '@/types';
-import { ArrowLeft, Download, Heart } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowLeft, Download, Heart, Edit, Save, Check, X } from 'lucide-react';
+import { Input } from '@/components/ui/input';
 
 interface CaseTranscriptProps {
   caseItem: Case;
   onBack: () => void;
   onExport: () => void;
   onToggleFavorite: () => void;
+  onUpdateTitle?: (caseId: string, newTitle: string) => void;
 }
 
-export default function CaseTranscript({ caseItem, onBack, onExport, onToggleFavorite }: CaseTranscriptProps) {
+export default function CaseTranscript({ 
+  caseItem, 
+  onBack, 
+  onExport, 
+  onToggleFavorite,
+  onUpdateTitle 
+}: CaseTranscriptProps) {
   const date = new Date(caseItem.date).toLocaleDateString();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(caseItem.title);
+  
+  const handleSaveTitle = () => {
+    if (editedTitle.trim() && onUpdateTitle) {
+      onUpdateTitle(caseItem.id, editedTitle);
+      setIsEditing(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditedTitle(caseItem.title);
+    setIsEditing(false);
+  };
   
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
         <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
           <ArrowLeft size={16} />
-          <span className="sr-only">Back to cases</span>
+          <span className="sr-only">Back</span>
         </Button>
         
         <div className="flex items-center gap-2">
@@ -50,7 +73,39 @@ export default function CaseTranscript({ caseItem, onBack, onExport, onToggleFav
       </div>
       
       <div>
-        <h2 className="text-xl font-semibold">{caseItem.title}</h2>
+        {isEditing ? (
+          <div className="flex items-center gap-2">
+            <Input
+              value={editedTitle}
+              onChange={(e) => setEditedTitle(e.target.value)}
+              className="text-xl font-semibold h-10"
+              autoFocus
+            />
+            <Button variant="ghost" size="icon" onClick={handleSaveTitle}>
+              <Check size={18} />
+              <span className="sr-only">Save title</span>
+            </Button>
+            <Button variant="ghost" size="icon" onClick={handleCancelEdit}>
+              <X size={18} />
+              <span className="sr-only">Cancel</span>
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-semibold">{caseItem.title}</h2>
+            {onUpdateTitle && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="h-6 w-6" 
+                onClick={() => setIsEditing(true)}
+              >
+                <Edit size={14} />
+                <span className="sr-only">Edit title</span>
+              </Button>
+            )}
+          </div>
+        )}
         <p className="text-sm text-muted-foreground">{date}</p>
       </div>
       
