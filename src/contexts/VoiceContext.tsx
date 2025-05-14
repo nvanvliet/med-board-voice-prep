@@ -11,6 +11,7 @@ interface VoiceContextType {
   isListening: boolean;
   isSpeaking: boolean;
   audioLevel: number;
+  transcription: string;
   setApiKey: (apiKey: string) => void;
   startListening: () => Promise<void>;
   stopListening: () => void;
@@ -37,6 +38,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [transcription, setTranscription] = useState<string>('');
   const { addMessage } = useCase();
 
   // Use the ElevenLabs conversation hook
@@ -44,9 +46,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     onMessage: (message) => {
       console.log('ElevenLabs message:', message);
       
-      // Forward messages from ElevenLabs to the chat interface
-      if (message.source === 'user') {
+      // Update transcription for user messages in progress
+      if (message.source === 'user' && message.is_final === false) {
+        setTranscription(message.message);
+      }
+      
+      // Forward final messages from ElevenLabs to the chat interface
+      if (message.source === 'user' && message.is_final === true) {
         addMessage(message.message, 'user');
+        setTranscription(''); // Clear transcription once the message is final
       }
       else if (message.source === 'ai') {
         addMessage(message.message, 'ai');
@@ -99,6 +107,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       });
       
       setIsListening(true);
+      setTranscription(''); // Reset transcription when starting a new session
       
       // Update audio level with animation frame
       updateAudioLevel();
@@ -113,6 +122,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await conversation.endSession();
       setIsListening(false);
       setAudioLevel(0);
+      setTranscription(''); // Clear transcription when disconnecting
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
     }
@@ -168,6 +178,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       isListening,
       isSpeaking,
       audioLevel,
+      transcription,
       setApiKey,
       startListening,
       stopListening,

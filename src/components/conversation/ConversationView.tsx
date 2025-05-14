@@ -7,43 +7,13 @@ import ConversationFooter from './ConversationFooter';
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase } = useCase();
-  const { isListening, isSpeaking, audioLevel } = useVoice();
+  const { isListening, isSpeaking, audioLevel, transcription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const [transcript, setTranscript] = useState<string>('');
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, transcript]);
-
-  // Simulate live transcription effect when listening
-  useEffect(() => {
-    if (isListening) {
-      // Simulate the effect of words appearing as they're spoken
-      const typingInterval = setInterval(() => {
-        const phrases = [
-          "Can you do all the vitals and give me the results?",
-          "Yes, can you get the blood pressure? Can you also check to see how their breathing is?",
-          "What other vital signs should I be looking at?",
-          "Let me think about what to ask next...",
-          "Could you explain the patient's symptoms again?",
-        ];
-        
-        const randomIndex = Math.floor(Math.random() * phrases.length);
-        const words = phrases[randomIndex].split(" ");
-        const randomWordCount = Math.floor(Math.random() * words.length) + 1;
-        const partialPhrase = words.slice(0, randomWordCount).join(" ");
-        
-        if (Math.random() > 0.7) {
-          setTranscript(partialPhrase);
-        }
-      }, 800);
-      
-      return () => clearInterval(typingInterval);
-    } else {
-      setTranscript('');
-    }
-  }, [isListening]);
+  }, [messages, transcription]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -58,7 +28,7 @@ export default function ConversationView() {
           </div>
         )}
         
-        {messages.length === 0 && !transcript ? (
+        {messages.length === 0 && !transcription ? (
           <div className="text-center text-gray-500 my-8">
             {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
           </div>
@@ -69,10 +39,10 @@ export default function ConversationView() {
             ))}
             
             {/* Show live transcript if there's text and we're listening */}
-            {transcript && isListening && (
+            {transcription && isListening && (
               <div className="ml-auto max-w-[80%] mb-4">
                 <div className="bg-medical-purple text-white rounded-lg rounded-br-none p-4">
-                  {transcript}
+                  {transcription}
                 </div>
                 <div className="text-xs text-gray-500 mt-1 text-right">
                   {new Date().toLocaleTimeString('en-US', {
