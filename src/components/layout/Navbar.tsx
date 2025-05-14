@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCase } from '@/contexts/CaseContext';
-import { Home, LogOut, Play } from 'lucide-react';
+import { LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CaseList from '../cases/CaseList';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,7 +17,6 @@ export default function Navbar() {
     <header className="border-b bg-white">
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link to="/" className="flex items-center gap-2">
-          <Home size={24} />
           <h1 className="text-xl font-semibold">Medical Oral Board Study Bot</h1>
         </Link>
         
@@ -25,7 +24,6 @@ export default function Navbar() {
           {user && (
             <>
               <Button onClick={startNewCase} variant="default" className="flex items-center gap-1">
-                <Play size={18} />
                 Start Exam
               </Button>
             
