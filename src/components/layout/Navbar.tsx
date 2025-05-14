@@ -4,14 +4,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCase } from '@/contexts/CaseContext';
-import { Heart, Home, LogOut } from 'lucide-react';
+import { Home, LogOut, Play } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import CaseList from '../cases/CaseList';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
-  const { favoriteCases, toggleFavorite, exportCase } = useCase();
+  const { favoriteCases, toggleFavorite, exportCase, startNewCase } = useCase();
   
   return (
     <header className="border-b bg-white">
@@ -24,6 +24,11 @@ export default function Navbar() {
         <div className="ml-auto flex items-center gap-4">
           {user && (
             <>
+              <Button onClick={startNewCase} variant="default" className="flex items-center gap-1">
+                <Play size={18} />
+                Start Exam
+              </Button>
+            
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" className="flex items-center gap-1">
@@ -42,7 +47,7 @@ export default function Navbar() {
               
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" className="flex items-center gap-1">
+                  <Button variant="outline">
                     My Favorites
                   </Button>
                 </SheetTrigger>
@@ -72,7 +77,6 @@ export default function Navbar() {
                                     className="h-8 w-8"
                                     onClick={() => toggleFavorite(caseItem.id)}
                                   >
-                                    <Heart size={18} className="fill-red-500 text-red-500" />
                                     <span className="sr-only">Remove from favorites</span>
                                   </Button>
                                 </div>

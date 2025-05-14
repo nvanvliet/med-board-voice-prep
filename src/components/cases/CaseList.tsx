@@ -21,17 +21,6 @@ export default function CaseList() {
   
   const selectedCase = cases.find(c => c.id === selectedCaseId);
   
-  if (selectedCase) {
-    return (
-      <CaseTranscript 
-        caseItem={selectedCase} 
-        onBack={() => setSelectedCaseId(null)} 
-        onExport={() => exportCase(selectedCase.id)}
-        onToggleFavorite={() => toggleFavorite(selectedCase.id)}
-      />
-    );
-  }
-  
   return (
     <div className="space-y-3">
       {cases.map((caseItem) => {
@@ -42,7 +31,11 @@ export default function CaseList() {
           <Card 
             key={caseItem.id}
             className="cursor-pointer hover:border-primary/50 transition-colors"
-            onClick={() => setSelectedCaseId(caseItem.id)}
+            onClick={() => {
+              setSelectedCaseId(caseItem.id);
+              // Close the sheet by triggering a click on the document body
+              document.body.click();
+            }}
           >
             <div className="p-4 flex items-center justify-between">
               <div>
