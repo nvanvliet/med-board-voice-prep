@@ -7,7 +7,7 @@ import ConversationFooter from './ConversationFooter';
 
 export default function ConversationView() {
   const { messages, endCurrentCase } = useCase();
-  const { speak } = useVoice();
+  const { speak, startListening, isListening } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
@@ -22,6 +22,17 @@ export default function ConversationView() {
       speak(lastMessage.text);
     }
   }, [messages, speak]);
+
+  // Auto-start listening when the conversation view is mounted, if not already listening
+  useEffect(() => {
+    if (!isListening) {
+      const timer = setTimeout(() => {
+        startListening();
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [startListening, isListening]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">

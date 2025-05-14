@@ -5,14 +5,21 @@ import { useVoice } from '@/contexts/VoiceContext';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
-  const { isConfigured } = useVoice();
+  const { isConfigured, startListening } = useVoice();
   
-  const handleStartExam = () => {
+  const handleStartExam = async () => {
     if (!isConfigured) {
       // We'll handle this in the parent component
       return;
     }
+    
+    // Start a new case first
     startNewCase();
+    
+    // Then automatically start listening
+    setTimeout(() => {
+      startListening();
+    }, 500); // Small delay to ensure case is initialized
   };
   
   return (

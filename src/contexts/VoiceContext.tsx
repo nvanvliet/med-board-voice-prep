@@ -65,26 +65,58 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const startListening = async () => {
     if (window.elevenLabsConvai) {
       try {
-        // Open the Convai widget
-        if (!window.elevenLabsConvai.isWidgetOpen()) {
-          window.elevenLabsConvai.openWidget();
+        // Make sure to initialize the audio context for audio level visualization
+        if (!audioContext) {
+          const context = new AudioContext();
+          setAudioContext(context);
         }
         
-        // Start the conversation
+        // Start the conversation without opening the widget visibly
         window.elevenLabsConvai.startConversation();
         setIsListening(true);
         
-        // Simulate audio level for UI feedback
-        const simulateAudioLevel = () => {
-          if (!isListening) return;
-          setAudioLevel(Math.random() * 0.5 + 0.1); // Random value between 0.1 and 0.6
-          requestAnimationFrame(simulateAudioLevel);
-        };
+        // Request microphone access
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          
+          // Create an audio analyzer to visualize audio levels
+          if (audioContext) {
+            const source = audioContext.createMediaStreamSource(stream);
+            const analyzer = audioContext.createAnalyser();
+            analyzer.fftSize = 256;
+            source.connect(analyzer);
+            
+            // Start audio level visualization
+            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+            
+            const updateAudioLevel = () => {
+              if (!isListening) return;
+              
+              analyzer.getByteFrequencyData(dataArray);
+              const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+              const normalized = Math.min(average / 128, 1); // Normalize to 0-1
+              
+              setAudioLevel(normalized);
+              requestAnimationFrame(updateAudioLevel);
+            };
+            
+            updateAudioLevel();
+            
+            // Set up media recorder
+            const recorder = new MediaRecorder(stream);
+            setMediaRecorder(recorder);
+          }
+        } catch (err) {
+          console.error('Error accessing microphone', err);
+          toast.error('Could not access microphone');
+          setIsListening(false);
+        }
         
-        simulateAudioLevel();
+        toast.success('Microphone activated', { duration: 2000 });
       } catch (error) {
         console.error('Error starting Convai widget', error);
         toast.error('Could not start conversation');
+        setIsListening(false);
       }
     } else {
       toast.error('ElevenLabs Convai widget not loaded yet');
@@ -94,9 +126,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const stopListening = () => {
     if (window.elevenLabsConvai) {
       window.elevenLabsConvai.endConversation();
-      if (window.elevenLabsConvai.isWidgetOpen()) {
-        window.elevenLabsConvai.closeWidget();
-      }
     }
     
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
@@ -105,6 +134,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     
     setIsListening(false);
     setAudioLevel(0);
+    toast.info('Microphone deactivated', { duration: 2000 });
   };
 
   const speak = async (text: string) => {
