@@ -1,0 +1,106 @@
+
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mic, Send, Square } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { useVoice } from '@/contexts/VoiceContext';
+import { useCase } from '@/contexts/CaseContext';
+import AudioVisualizer from './AudioVisualizer';
+
+interface ConversationFooterProps {
+  onEndConversation: () => void;
+}
+
+export default function ConversationFooter({ onEndConversation }: ConversationFooterProps) {
+  const [inputText, setInputText] = useState('');
+  const { isListening, isSpeaking, audioLevel, startListening, stopListening } = useVoice();
+  const { addMessage } = useCase();
+  
+  const handleSendMessage = () => {
+    if (!inputText.trim()) return;
+    
+    // Add the user message
+    addMessage(inputText, 'user');
+    setInputText('');
+    
+    // Simulate AI response (in a real app, this would come from ElevenLabs)
+    setTimeout(() => {
+      addMessage('I am sorry, I am having trouble retrieving the information. Can you ask me for the vitals individually?', 'ai');
+    }, 1500);
+  };
+  
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSendMessage();
+    }
+  };
+  
+  const toggleRecording = async () => {
+    if (isListening) {
+      stopListening();
+      // Simulate speech to text conversion
+      addMessage("Yes, can you get the blood pressure? Can you also check to see how their breathing is and give me any other information?", "user");
+      
+      // Simulate AI response
+      setTimeout(() => {
+        addMessage("I am still having trouble retrieving the information. Let's try something different.", "ai");
+        
+        setTimeout(() => {
+          addMessage("I will provide you with the initial information without using the tool. The patient's blood pressure is one hundred fifty over ninety, heart rate is one hundred, respiratory rate is twenty, pulse oximetry is ninety eight percent on room air, temperature is ninety eight point six Fahrenheit, and glucose is one hundred ten. How would you like to proceed?", "ai");
+        }, 3000);
+      }, 2500);
+    } else {
+      await startListening();
+    }
+  };
+  
+  return (
+    <div className="border-t p-4">
+      <div className="flex items-center gap-2">
+        <Button
+          type="button"
+          size="icon"
+          variant="outline"
+          className={isListening ? "bg-medical-red text-white hover:bg-medical-red-dark" : ""}
+          onClick={toggleRecording}
+          disabled={isSpeaking}
+        >
+          {isListening ? <Square size={18} /> : <Mic size={18} />}
+        </Button>
+        
+        <div className="relative flex-1">
+          <Input
+            value={inputText}
+            onChange={(e) => setInputText(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
+            disabled={isListening || isSpeaking}
+            className="pr-10"
+          />
+          <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+            <AudioVisualizer audioLevel={audioLevel} isActive={isListening} />
+          </div>
+        </div>
+        
+        <Button
+          type="button"
+          size="icon"
+          onClick={handleSendMessage}
+          disabled={!inputText.trim() || isListening || isSpeaking}
+        >
+          <Send size={18} />
+        </Button>
+      </div>
+      
+      <div className="mt-4">
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={onEndConversation}
+        >
+          End Conversation
+        </Button>
+      </div>
+    </div>
+  );
+}
