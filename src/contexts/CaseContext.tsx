@@ -67,7 +67,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     
     setCurrentCase(newCase);
     setMessages([]);
-    toast.success('New case started');
+    // Removed toast notification: toast.success('New case started');
   };
 
   const addMessage = (text: string, sender: 'user' | 'ai') => {
