@@ -10,6 +10,7 @@ import { useState } from 'react';
 import CaseList from '../cases/CaseList';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function Navbar() {
   const { user, signOut } = useAuth();
@@ -101,77 +102,79 @@ export default function Navbar() {
                         <p className="text-sm mt-2">Click the heart icon to add cases to favorites</p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
-                        {sortedFavorites.map((caseItem) => {
-                          const date = new Date(caseItem.date).toLocaleDateString();
-                          const isEditing = editingFavoriteId === caseItem.id;
-                          
-                          return (
-                            <Card 
-                              key={caseItem.id} 
-                              className={`cursor-pointer hover:border-primary/50 transition-colors ${isEditing ? 'border-primary' : ''}`}
-                              onClick={() => handleCaseClick(caseItem.id)}
-                            >
-                              <div className="p-4">
-                                <div className="flex items-center justify-between">
-                                  {isEditing ? (
-                                    <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
-                                      <Input
-                                        value={editedTitle}
-                                        onChange={(e) => setEditedTitle(e.target.value)}
-                                        className="h-8 text-sm"
-                                        autoFocus
-                                        onFocus={(e) => e.target.select()}
-                                        onKeyDown={(e) => {
-                                          if (e.key === 'Enter') {
-                                            handleSaveTitle(caseItem.id, e as unknown as React.MouseEvent);
-                                          } else if (e.key === 'Escape') {
-                                            handleCancelEdit(e as unknown as React.MouseEvent);
-                                          }
-                                        }}
+                      <ScrollArea className="h-[calc(100vh-180px)]">
+                        <div className="space-y-4 pr-4">
+                          {sortedFavorites.map((caseItem) => {
+                            const date = new Date(caseItem.date).toLocaleDateString();
+                            const isEditing = editingFavoriteId === caseItem.id;
+                            
+                            return (
+                              <Card 
+                                key={caseItem.id} 
+                                className={`cursor-pointer hover:border-primary/50 transition-colors ${isEditing ? 'border-primary' : ''}`}
+                                onClick={() => handleCaseClick(caseItem.id)}
+                              >
+                                <div className="p-4">
+                                  <div className="flex items-center justify-between">
+                                    {isEditing ? (
+                                      <div className="flex items-center gap-2" onClick={(e) => e.stopPropagation()}>
+                                        <Input
+                                          value={editedTitle}
+                                          onChange={(e) => setEditedTitle(e.target.value)}
+                                          className="h-8 text-sm"
+                                          autoFocus
+                                          onFocus={(e) => e.target.select()}
+                                          onKeyDown={(e) => {
+                                            if (e.key === 'Enter') {
+                                              handleSaveTitle(caseItem.id, e as unknown as React.MouseEvent);
+                                            } else if (e.key === 'Escape') {
+                                              handleCancelEdit(e as unknown as React.MouseEvent);
+                                            }
+                                          }}
+                                        />
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleSaveTitle(caseItem.id, e)}>
+                                          <Check size={16} />
+                                        </Button>
+                                        <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCancelEdit}>
+                                          <X size={16} />
+                                        </Button>
+                                      </div>
+                                    ) : (
+                                      <div className="flex items-center gap-2">
+                                        <h3 className="font-medium">{caseItem.title}</h3>
+                                        <Button 
+                                          variant="ghost" 
+                                          size="icon" 
+                                          className="h-6 w-6" 
+                                          onClick={(e) => startEditing(caseItem.id, caseItem.title, e)}
+                                        >
+                                          <Edit size={14} />
+                                        </Button>
+                                      </div>
+                                    )}
+                                    <Button 
+                                      variant="ghost" 
+                                      size="icon" 
+                                      className="h-8 w-8"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleFavorite(caseItem.id);
+                                      }}
+                                    >
+                                      <Heart 
+                                        size={16}
+                                        className="fill-red-500 text-red-500"
                                       />
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => handleSaveTitle(caseItem.id, e)}>
-                                        <Check size={16} />
-                                      </Button>
-                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleCancelEdit}>
-                                        <X size={16} />
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-2">
-                                      <h3 className="font-medium">{caseItem.title}</h3>
-                                      <Button 
-                                        variant="ghost" 
-                                        size="icon" 
-                                        className="h-6 w-6" 
-                                        onClick={(e) => startEditing(caseItem.id, caseItem.title, e)}
-                                      >
-                                        <Edit size={14} />
-                                      </Button>
-                                    </div>
-                                  )}
-                                  <Button 
-                                    variant="ghost" 
-                                    size="icon" 
-                                    className="h-8 w-8"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleFavorite(caseItem.id);
-                                    }}
-                                  >
-                                    <Heart 
-                                      size={16}
-                                      className="fill-red-500 text-red-500"
-                                    />
-                                    <span className="sr-only">Remove from favorites</span>
-                                  </Button>
+                                      <span className="sr-only">Remove from favorites</span>
+                                    </Button>
+                                  </div>
+                                  <p className="text-xs text-muted-foreground">{date}</p>
                                 </div>
-                                <p className="text-xs text-muted-foreground">{date}</p>
-                              </div>
-                            </Card>
-                          );
-                        })}
-                      </div>
+                              </Card>
+                            );
+                          })}
+                        </div>
+                      </ScrollArea>
                     )}
                   </div>
                 </SheetContent>
