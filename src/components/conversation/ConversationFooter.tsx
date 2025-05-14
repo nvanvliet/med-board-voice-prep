@@ -7,6 +7,7 @@ import { useVoice } from '@/contexts/VoiceContext';
 import { useCase } from '@/contexts/CaseContext';
 import AudioVisualizer from './AudioVisualizer';
 import { Toggle } from '@/components/ui/toggle';
+import { toast } from 'sonner';
 
 interface ConversationFooterProps {
   onEndConversation: () => void;
@@ -47,6 +48,20 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
   const handleMicToggle = () => {
     console.log("Mic toggle clicked, current isListening state:", isListening);
     toggleMicrophone();
+    
+    // Show toast notification based on the new microphone state
+    // Since the state hasn't updated yet when this runs, we need to show the opposite of the current state
+    if (!isListening) {
+      toast.success('Microphone turned on', {
+        position: 'top-center',
+        duration: 2000,
+      });
+    } else {
+      toast.info('Microphone turned off', {
+        position: 'top-center',
+        duration: 2000,
+      });
+    }
   };
   
   return (
