@@ -64,21 +64,18 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
           addMessage(message.message, 'user');
-          // Don't clear transcription after adding final message
-          // The transcription will be replaced by the next one or the AI response
+          // Clear transcription after adding final message to prevent duplication
+          setTranscription('');
         }
       }
       // Handle AI responses
       else if (message.source === 'ai') {
         console.log('Adding AI message to chat');
-        // Update transcription to show what AI is saying
-        setTranscription(message.message);
-        
-        // Add it to the messages history
+        // Add AI message to chat history
         addMessage(message.message, 'ai');
         
-        // Do not clear the transcription - let it stay visible
-        // It will be replaced by the next user transcription when they speak
+        // Update transcription to show what AI is saying
+        setTranscription(message.message);
         
         // Trigger text-to-speech
         speak(message.message);
@@ -138,8 +135,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         // Initialize with empty messages to ensure it's visible in the ConversationView
         setTranscription('Connecting to AI assistant...');
         
-        // We're not clearing the connection message automatically anymore
-        // It will stay visible until replaced by the first AI or user message
+        // Add the connecting message to the case
+        addMessage('Connecting to AI assistant...', 'ai');
       }
       
       // Always set isListening to true when connecting
@@ -170,7 +167,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await conversation.endSession();
       setIsListening(false);
       setAudioLevel(0);
-      // Don't clear transcription when disconnecting to keep the last message visible
       setSessionActive(false);
       console.log('Disconnected from ElevenLabs agent');
     } catch (error) {
@@ -187,7 +183,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       console.log('Muting microphone, conversation continues');
       setIsListening(false);
       setAudioLevel(0);
-      // Don't clear transcription when muting, keep last transcription visible
     } else {
       // If not listening, resume microphone
       // Only start a new session if one isn't already active
@@ -239,6 +234,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));
       
       setIsSpeaking(false);
+      // Clear transcription after speaking is done to ensure a clean slate for next user input
+      setTranscription('');
     } catch (error) {
       console.error('Text-to-speech error', error);
       addMessage("Failed to generate speech.", 'ai');
