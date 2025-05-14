@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -47,7 +48,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Check if message has correct structure
       if ('message' in message && 'source' in message) {
-        // Handle the message based on its source (user or assistant)
+        // Handle the message based on its source (user or system)
         const messageText = message.message;
         const source = message.source;
         
@@ -70,17 +71,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
             setCurrentTranscription(messageText);
           }
         } 
-        // Check if it's an AI assistant message from ElevenLabs
-        else if (source === 'assistant') {
-          // In our system we use 'ai' as the message type, but ElevenLabs uses 'assistant'
-          // So we need to map 'assistant' from ElevenLabs to 'ai' for our system
-          addMessage(messageText, 'ai' as 'user' | 'ai');
+        // Handle messages from the system (avoiding the 'assistant' string comparison)
+        else if (source !== 'user') {
+          // Convert any non-user message to our internal message format
+          addMessage(messageText, 'ai');
         }
       }
     },
     onError: (error) => {
       console.error('ElevenLabs agent error:', error);
-      toast.error('Error communicating with AI assistant');
+      toast.error('Error communicating with voice service');
     }
   });
 
@@ -108,7 +108,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       updateAudioLevel();
       
       // Show a toast notification that microphone is active
-      toast.success('Connected to AI assistant', {
+      toast.success('Connected to voice service', {
         position: 'top-center',
         duration: 2000,
       });
