@@ -20,7 +20,7 @@ export default function HomePage() {
         <Navbar />
         <div className="flex-1 flex items-center justify-center">
           <div className="max-w-md w-full p-8 bg-white rounded-lg shadow-lg text-center">
-            <h2 className="text-2xl font-semibold mb-4">Welcome to Medical Board Exam Practice</h2>
+            <h2 className="text-2xl font-semibold mb-4">Welcome to Medical Oral Board Study Bot</h2>
             <p className="mb-6 text-muted-foreground">Please sign in to start practicing for your medical board exams.</p>
             <Button asChild className="w-full">
               <Link to="/auth">Sign In to Continue</Link>

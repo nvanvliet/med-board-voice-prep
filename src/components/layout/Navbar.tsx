@@ -15,7 +15,7 @@ export default function Navbar() {
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link to="/" className="flex items-center gap-2">
           <Home size={24} />
-          <h1 className="text-xl font-semibold">Medical Board Exam</h1>
+          <h1 className="text-xl font-semibold">Medical Oral Board Study Bot</h1>
         </Link>
         
         <div className="ml-auto flex items-center gap-4">
