@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Mic, Send, Square } from 'lucide-react';
+import { Circle, Mic, MicOff, Send } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useCase } from '@/contexts/CaseContext';
@@ -55,7 +55,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
           onClick={toggleRecording}
           disabled={isSpeaking}
         >
-          {isListening ? <Square size={18} /> : <Mic size={18} />}
+          {isListening ? <Circle size={18} /> : <MicOff size={18} />}
         </Button>
         
         <div className="relative flex-1">
