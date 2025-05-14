@@ -114,13 +114,15 @@ export function CaseProvider({ children }: { children: ReactNode }) {
   };
 
   const endCurrentCase = () => {
-    if (currentCase && messages.length > 0) {
-      // Always save the case to "My Cases" when ending a conversation
+    if (currentCase) {
+      // Always save the case when ending it (even if it has no messages)
       saveCurrentCase();
+      
+      // Clear the current case state
+      setCurrentCase(null);
+      setMessages([]);
+      toast.info('Case ended');
     }
-    setCurrentCase(null);
-    setMessages([]);
-    toast.info('Case ended');
   };
 
   const exportCase = (caseId: string) => {
