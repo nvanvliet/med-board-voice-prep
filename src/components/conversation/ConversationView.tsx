@@ -63,43 +63,46 @@ export default function ConversationView() {
           </div>
         )}
         
-        {messages.length === 0 && !lastTranscription ? (
-          <div className="text-center text-gray-500 my-8">
-            {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
-          </div>
-        ) : (
-          <>
-            {messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))}
-            
-            {/* Show live transcription bubble */}
-            {lastTranscription && (
-              <div className={`${lastSpeakerType === 'user' ? 'ml-auto' : 'mr-auto'} max-w-[80%] mb-4`}>
-                <div className={`${
-                  lastSpeakerType === 'user' 
-                    ? 'bg-medical-purple text-white rounded-br-none' 
-                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
-                  } rounded-lg p-4 animate-pulse-slow`}>
-                  {lastTranscription}
-                  {isListening && lastSpeakerType === 'user' && (
-                    <span className="inline-block ml-1 animate-pulse">...</span>
-                  )}
-                  {isSpeaking && lastSpeakerType === 'ai' && (
-                    <span className="inline-block ml-1 animate-pulse">...</span>
-                  )}
+        <div className="space-y-4">
+          {messages.length === 0 && !lastTranscription ? (
+            <div className="text-center text-gray-500 my-8">
+              {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
+            </div>
+          ) : (
+            <div className="flex flex-col space-y-4">
+              {/* Display all past messages */}
+              {messages.map((message) => (
+                <MessageBubble key={message.id} message={message} />
+              ))}
+              
+              {/* Show live transcription bubble only if there is transcription */}
+              {lastTranscription && (
+                <div className={`${lastSpeakerType === 'user' ? 'ml-auto' : 'mr-auto'} max-w-[80%]`}>
+                  <div className={`${
+                    lastSpeakerType === 'user' 
+                      ? 'bg-medical-purple text-white rounded-br-none' 
+                      : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                    } rounded-lg p-4 animate-pulse-slow`}>
+                    {lastTranscription}
+                    {isListening && lastSpeakerType === 'user' && (
+                      <span className="inline-block ml-1 animate-pulse">...</span>
+                    )}
+                    {isSpeaking && lastSpeakerType === 'ai' && (
+                      <span className="inline-block ml-1 animate-pulse">...</span>
+                    )}
+                  </div>
+                  <div className={`text-xs text-gray-500 mt-1 ${lastSpeakerType === 'user' ? 'text-right' : 'text-left'}`}>
+                    {new Date().toLocaleTimeString('en-US', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false
+                    })}
+                  </div>
                 </div>
-                <div className={`text-xs text-gray-500 mt-1 ${lastSpeakerType === 'user' ? 'text-right' : 'text-left'}`}>
-                  {new Date().toLocaleTimeString('en-US', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: false
-                  })}
-                </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </div>
+          )}
+        </div>
         <div ref={messagesEndRef} />
       </div>
       
