@@ -70,10 +70,12 @@ export default function ConversationView() {
             </div>
           ) : (
             <div className="flex flex-col space-y-4">
-              {/* Display all past messages */}
-              {messages.map((message) => (
-                <MessageBubble key={message.id} message={message} />
-              ))}
+              {/* Display conversation history with all past messages */}
+              <div className="conversation-history space-y-4">
+                {messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))}
+              </div>
               
               {/* Show live transcription bubble only if there is transcription */}
               {lastTranscription && (
