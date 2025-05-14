@@ -7,27 +7,12 @@ import { useVoice } from '@/contexts/VoiceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { useState, useEffect } from 'react';
-import CaseTranscript from '@/components/cases/CaseTranscript';
+import { useState } from 'react';
 
 export default function HomePage() {
   const { user } = useAuth();
-  const { currentCase, cases, exportCase, toggleFavorite, updateCaseTitle } = useCase();
+  const { currentCase } = useCase();
   const { isConfigured } = useVoice();
-  const [viewingCaseId, setViewingCaseId] = useState<string | null>(null);
-  
-  // Listen for custom events to handle case viewing
-  useEffect(() => {
-    const handleViewCase = (e: CustomEvent<{caseId: string}>) => {
-      setViewingCaseId(e.detail.caseId);
-    };
-    
-    document.addEventListener('viewCaseTranscript', handleViewCase as EventListener);
-    
-    return () => {
-      document.removeEventListener('viewCaseTranscript', handleViewCase as EventListener);
-    };
-  }, []);
   
   // If no user is logged in, show a prompt
   if (!user) {
@@ -46,29 +31,15 @@ export default function HomePage() {
       </div>
     );
   }
-  
-  const viewingCase = viewingCaseId ? cases.find(c => c.id === viewingCaseId) : null;
-  
+
   return (
     <div className="min-h-screen flex flex-col medical-bg">
       <Navbar />
       <div className="flex-1">
-        {viewingCase ? (
-          <div className="container mx-auto px-4 py-6">
-            <CaseTranscript 
-              caseItem={viewingCase} 
-              onBack={() => setViewingCaseId(null)} 
-              onExport={() => exportCase(viewingCase.id)}
-              onToggleFavorite={() => toggleFavorite(viewingCase.id)}
-              onUpdateTitle={updateCaseTitle}
-            />
-          </div>
+        {!currentCase ? (
+          <ConversationEmpty />
         ) : (
-          !currentCase ? (
-            <ConversationEmpty />
-          ) : (
-            <ConversationView />
-          )
+          <ConversationView />
         )}
       </div>
     </div>

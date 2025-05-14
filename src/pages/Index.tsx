@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import HomePage from './HomePage';
 import CaseTranscript from '@/components/cases/CaseTranscript';
@@ -23,6 +22,7 @@ const Index = () => {
     };
   }, []);
 
+  // If viewing a case transcript, show that instead of HomePage
   if (selectedCase) {
     return (
       <div className="container mx-auto px-4 py-6">
@@ -37,6 +37,7 @@ const Index = () => {
     );
   }
   
+  // Otherwise show the HomePage which contains conversation view
   return <HomePage />;
 };
 
