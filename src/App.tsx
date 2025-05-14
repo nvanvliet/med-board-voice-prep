@@ -1,11 +1,15 @@
 
 import React from 'react';
 import './App.css';
-import ConversationView from '@/components/conversation/ConversationView';
+import { Routes, Route } from 'react-router-dom';
 import { CaseProvider } from '@/contexts/CaseContext';
 import { VoiceProvider } from '@/contexts/VoiceContext';
 import { AuthProvider } from '@/contexts/AuthContext';
 import { Toaster } from 'sonner';
+import HomePage from '@/pages/HomePage';
+import AuthPage from '@/pages/AuthPage';
+import NotFound from '@/pages/NotFound';
+import Index from '@/pages/Index';
 
 function App() {
   return (
@@ -13,10 +17,11 @@ function App() {
       <CaseProvider>
         <VoiceProvider>
           <div className="App">
-            <header className="App-header">
-              <p>Medical AI Assistant</p>
-            </header>
-            <ConversationView />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<AuthPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
           </div>
           <Toaster />
         </VoiceProvider>
