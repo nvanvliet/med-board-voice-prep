@@ -10,11 +10,14 @@ export default function ConversationView() {
   const { isListening, isSpeaking, audioLevel, transcription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [lastTranscription, setLastTranscription] = useState('');
+  const [lastSpeakerType, setLastSpeakerType] = useState<'user' | 'ai'>('user');
 
-  // Store last valid transcription to avoid UI flicker
+  // Store last valid transcription to avoid UI flicker and track speaker type
   useEffect(() => {
     if (transcription && transcription.trim() !== '') {
       setLastTranscription(transcription);
+      // We assume transcription is always from the user in this context
+      setLastSpeakerType('user');
     }
   }, [transcription]);
 
@@ -27,7 +30,23 @@ export default function ConversationView() {
   useEffect(() => {
     console.log("Current transcription:", transcription);
     console.log("Is listening:", isListening);
-  }, [transcription, isListening]);
+    console.log("Is speaking:", isSpeaking);
+    console.log("Last speaker type:", lastSpeakerType);
+  }, [transcription, isListening, isSpeaking, lastSpeakerType]);
+  
+  // Track AI responses from messages
+  useEffect(() => {
+    // Check if the latest message is from AI and update state
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage.sender === 'ai') {
+        // When new AI message arrives, clear any user transcription
+        if (lastSpeakerType === 'user') {
+          setLastSpeakerType('ai');
+        }
+      }
+    }
+  }, [messages, lastSpeakerType]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -52,13 +71,20 @@ export default function ConversationView() {
               <MessageBubble key={message.id} message={message} />
             ))}
             
-            {/* Always show transcription if available, even when not listening */}
+            {/* Show live transcription bubble */}
             {lastTranscription && (
-              <div className="ml-auto max-w-[80%] mb-4">
-                <div className="bg-medical-purple text-white rounded-lg rounded-br-none p-4">
+              <div className={`${lastSpeakerType === 'user' ? 'ml-auto' : 'mr-auto'} max-w-[80%] mb-4`}>
+                <div className={`${
+                  lastSpeakerType === 'user' 
+                    ? 'bg-medical-purple text-white rounded-br-none' 
+                    : 'bg-gray-100 text-gray-800 rounded-bl-none'
+                  } rounded-lg p-4 animate-pulse-slow`}>
                   {lastTranscription}
+                  {(isListening && lastSpeakerType === 'user') || (isSpeaking && lastSpeakerType === 'ai') ? (
+                    <span className="inline-block ml-1 animate-pulse">...</span>
+                  ) : null}
                 </div>
-                <div className="text-xs text-gray-500 mt-1 text-right">
+                <div className={`text-xs text-gray-500 mt-1 ${lastSpeakerType === 'user' ? 'text-right' : 'text-left'}`}>
                   {new Date().toLocaleTimeString('en-US', {
                     hour: '2-digit',
                     minute: '2-digit',

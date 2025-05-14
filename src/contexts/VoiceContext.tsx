@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -54,7 +55,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     onMessage: (message: ElevenLabsMessage) => {
       console.log('ElevenLabs message received:', message);
       
-      // Update transcription for user messages in progress
+      // Handle user messages (transcriptions)
       if (message.source === 'user') {
         // Always update live transcription, regardless of is_final
         console.log('Setting transcription to:', message.message);
@@ -64,13 +65,16 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
           addMessage(message.message, 'user');
-          // Don't clear transcription here, keep it visible
         }
       }
+      // Handle AI responses
       else if (message.source === 'ai') {
         console.log('Adding AI message to chat');
-        setTranscription(''); // Clear user transcription when AI responds
+        // Update transcription to show what AI is saying
+        setTranscription(message.message);
+        // Add it to the messages history
         addMessage(message.message, 'ai');
+        // Also trigger text-to-speech
         speak(message.message);
       }
     },
