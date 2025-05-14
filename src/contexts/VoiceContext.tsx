@@ -5,6 +5,13 @@ import { toast } from 'sonner';
 import { useConversation } from '@11labs/react';
 import { useCase } from '@/contexts/CaseContext';
 
+// Define the structure of ElevenLabs message
+interface ElevenLabsMessage {
+  message: string;
+  source: 'user' | 'ai';
+  is_final?: boolean; // Make it optional since some messages might not have this property
+}
+
 interface VoiceContextType {
   config: ElevenLabsConfig;
   isConfigured: boolean;
@@ -43,7 +50,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // Use the ElevenLabs conversation hook
   const conversation = useConversation({
-    onMessage: (message) => {
+    onMessage: (message: ElevenLabsMessage) => {
       console.log('ElevenLabs message:', message);
       
       // Update transcription for user messages in progress
