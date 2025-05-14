@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
+import { toast } from 'sonner';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
@@ -19,6 +20,10 @@ export default function ConversationEmpty() {
     // Then connect to the ElevenLabs agent and automatically unmute the microphone
     setTimeout(() => {
       connectToAgent();
+      toast.success('Starting new exam session', {
+        position: 'top-center',
+        duration: 2000,
+      });
     }, 500); // Small delay to ensure case is initialized
   };
   

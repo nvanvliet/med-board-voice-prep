@@ -73,13 +73,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         console.log('Adding AI message to chat');
         // Update transcription to show what AI is saying
         setTranscription(message.message);
+        
         // Add it to the messages history
         addMessage(message.message, 'ai');
         
-        // Clear transcription once added to history to avoid duplication
+        // Keep transcription visible for a moment to ensure users see it
+        // before clearing it to prepare for next interaction
         setTimeout(() => {
           setTranscription('');
-        }, 500);
+        }, 1000);
         
         // Also trigger text-to-speech
         speak(message.message);
@@ -135,11 +137,20 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
           agentId: AGENT_ID
         });
         setSessionActive(true);
+        
+        // Initialize with empty messages to ensure it's visible in the ConversationView
+        setTranscription('Connecting to AI assistant...');
+        
+        // Clear the connection message after a short delay
+        setTimeout(() => {
+          if (transcription === 'Connecting to AI assistant...') {
+            setTranscription('');
+          }
+        }, 2000);
       }
       
       // Always set isListening to true when connecting
       setIsListening(true);
-      setTranscription(''); // Reset transcription when starting a new session
       
       // Update audio level with animation frame
       updateAudioLevel();
