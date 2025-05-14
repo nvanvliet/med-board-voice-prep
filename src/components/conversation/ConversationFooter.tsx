@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { useVoice } from '@/contexts/VoiceContext';
 import { useCase } from '@/contexts/CaseContext';
 import AudioVisualizer from './AudioVisualizer';
+import { Toggle } from '@/components/ui/toggle';
 
 interface ConversationFooterProps {
   onEndConversation: () => void;
@@ -51,15 +52,18 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
   return (
     <div className="border-t p-4">
       <div className="flex items-center gap-2">
-        <Button
-          type="button"
-          size="icon"
-          variant="outline"
-          className={isListening ? "bg-medical-red text-white hover:bg-medical-red-dark" : ""}
-          onClick={handleMicToggle}
+        <Toggle
+          pressed={isListening}
+          onPressedChange={handleMicToggle}
+          className={`rounded-full p-3 h-10 w-10 flex items-center justify-center ${
+            isListening 
+              ? "bg-medical-red text-white border-none hover:bg-medical-red-dark" 
+              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+          }`}
+          aria-label={isListening ? "Mute microphone" : "Unmute microphone"}
         >
           {isListening ? <MicOff size={18} /> : <Mic size={18} />}
-        </Button>
+        </Toggle>
         
         <div className="relative flex-1">
           <Input
