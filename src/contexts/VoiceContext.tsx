@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
+import { useConversation } from '@11labs/react';
 
 interface VoiceContextType {
   config: ElevenLabsConfig;
@@ -13,6 +14,8 @@ interface VoiceContextType {
   startListening: () => Promise<void>;
   stopListening: () => void;
   speak: (text: string) => Promise<void>;
+  connectToAgent: () => Promise<void>;
+  disconnectFromAgent: () => Promise<void>;
 }
 
 const defaultConfig: ElevenLabsConfig = {
@@ -20,6 +23,9 @@ const defaultConfig: ElevenLabsConfig = {
   modelId: 'eleven_multilingual_v2',
   apiKey: '',
 };
+
+// ElevenLabs agent ID
+const AGENT_ID = 'pbVKPG3uJWVU0KsvdQlO';
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
@@ -30,6 +36,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+
+  // Use the ElevenLabs conversation hook
+  const conversation = useConversation({
+    onMessage: (message) => {
+      console.log('ElevenLabs message:', message);
+    },
+    onError: (error) => {
+      console.error('ElevenLabs error:', error);
+      toast.error('Error connecting to ElevenLabs');
+    }
+  });
 
   // For simplicity, we'll consider it always configured
   const isConfigured = true;
@@ -50,6 +67,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (mediaRecorder && mediaRecorder.state !== 'inactive') {
         mediaRecorder.stop();
       }
+      
+      // End conversation when component unmounts
+      conversation.endSession().catch(console.error);
     };
   }, []);
   
@@ -58,59 +78,55 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     toast.success('API key set successfully');
   };
 
+  const connectToAgent = async () => {
+    try {
+      // Request microphone permission before connecting
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Connect to ElevenLabs agent
+      await conversation.startSession({
+        agentId: AGENT_ID
+      });
+      
+      toast.success('Connected to ElevenLabs agent', { duration: 2000 });
+      setIsListening(true);
+      
+      // Update audio level with animation frame
+      updateAudioLevel();
+    } catch (error) {
+      console.error('Failed to connect to ElevenLabs agent:', error);
+      toast.error('Failed to connect to ElevenLabs agent');
+    }
+  };
+  
+  const disconnectFromAgent = async () => {
+    try {
+      await conversation.endSession();
+      setIsListening(false);
+      setAudioLevel(0);
+      toast.info('Disconnected from ElevenLabs agent', { duration: 2000 });
+    } catch (error) {
+      console.error('Error disconnecting from agent:', error);
+    }
+  };
+
+  const updateAudioLevel = () => {
+    if (!isListening) return;
+    
+    // Simulate audio levels when connected to ElevenLabs
+    const randomValue = Math.random() * 0.5; // Random value between 0 and 0.5
+    setAudioLevel(randomValue);
+    
+    // Continue animation if still listening
+    if (isListening) {
+      requestAnimationFrame(updateAudioLevel);
+    }
+  };
+
   const startListening = async () => {
     try {
-      // Initialize audio context for visualizations
-      if (!audioContext) {
-        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
-        setAudioContext(context);
-      }
-      
-      // Request microphone access
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      
-      // Create an audio analyzer to visualize audio levels
-      if (audioContext) {
-        const source = audioContext.createMediaStreamSource(stream);
-        const analyzer = audioContext.createAnalyser();
-        analyzer.fftSize = 256;
-        source.connect(analyzer);
-        
-        // Start audio level visualization
-        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-        
-        const updateAudioLevel = () => {
-          if (!isListening) return;
-          
-          analyzer.getByteFrequencyData(dataArray);
-          const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
-          const normalized = Math.min(average / 128, 1); // Normalize to 0-1
-          
-          setAudioLevel(normalized);
-          requestAnimationFrame(updateAudioLevel);
-        };
-        
-        updateAudioLevel();
-        
-        // Set up media recorder
-        const recorder = new MediaRecorder(stream);
-        setMediaRecorder(recorder);
-        
-        // Start recording
-        recorder.start();
-        
-        // Handle data availability
-        recorder.ondataavailable = (event) => {
-          if (event.data.size > 0) {
-            // Here we would normally send data to the ElevenLabs API
-            // But since we're removing that functionality, we'll just log it
-            console.log('Audio data available', event.data.size);
-          }
-        };
-      }
-      
-      setIsListening(true);
-      toast.success('Microphone activated', { duration: 2000 });
+      // Connect to ElevenLabs agent
+      await connectToAgent();
     } catch (error) {
       console.error('Error accessing microphone', error);
       toast.error('Could not access microphone');
@@ -119,13 +135,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   };
 
   const stopListening = () => {
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-    
-    setIsListening(false);
-    setAudioLevel(0);
-    toast.info('Microphone deactivated', { duration: 2000 });
+    disconnectFromAgent();
   };
 
   const speak = async (text: string) => {
@@ -158,7 +168,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setApiKey,
       startListening,
       stopListening,
-      speak
+      speak,
+      connectToAgent,
+      disconnectFromAgent
     }}>
       {children}
     </VoiceContext.Provider>

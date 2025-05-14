@@ -13,7 +13,7 @@ interface ConversationFooterProps {
 
 export default function ConversationFooter({ onEndConversation }: ConversationFooterProps) {
   const [inputText, setInputText] = useState('');
-  const { isListening, isSpeaking, audioLevel, startListening, stopListening } = useVoice();
+  const { isListening, isSpeaking, audioLevel, connectToAgent, disconnectFromAgent } = useVoice();
   const { addMessage } = useCase();
   
   const handleSendMessage = () => {
@@ -37,7 +37,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
   
   const toggleRecording = async () => {
     if (isListening) {
-      stopListening();
+      disconnectFromAgent();
       // Simulate speech to text conversion
       addMessage("Yes, can you get the blood pressure? Can you also check to see how their breathing is and give me any other information?", "user");
       
@@ -50,8 +50,14 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
         }, 3000);
       }, 2500);
     } else {
-      await startListening();
+      await connectToAgent();
     }
+  };
+  
+  const handleEndConversation = () => {
+    // Disconnect from agent before ending the conversation
+    disconnectFromAgent();
+    onEndConversation();
   };
   
   return (
@@ -96,7 +102,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
         <Button
           variant="destructive"
           className="w-full"
-          onClick={onEndConversation}
+          onClick={handleEndConversation}
         >
           End Conversation
         </Button>

@@ -5,7 +5,7 @@ import { useVoice } from '@/contexts/VoiceContext';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
-  const { isConfigured, startListening } = useVoice();
+  const { isConfigured, connectToAgent } = useVoice();
   
   const handleStartExam = async () => {
     if (!isConfigured) {
@@ -16,9 +16,9 @@ export default function ConversationEmpty() {
     // Start a new case first
     startNewCase();
     
-    // Then automatically start listening
+    // Then connect to the ElevenLabs agent
     setTimeout(() => {
-      startListening();
+      connectToAgent();
     }, 500); // Small delay to ensure case is initialized
   };
   
