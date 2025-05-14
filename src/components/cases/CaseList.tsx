@@ -1,11 +1,14 @@
 
 import { useCase } from '@/contexts/CaseContext';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Download, Heart } from 'lucide-react';
+import { useState } from 'react';
+import CaseTranscript from './CaseTranscript';
 
 export default function CaseList() {
   const { cases, exportCase, toggleFavorite } = useCase();
+  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
   
   if (cases.length === 0) {
     return (
@@ -16,50 +19,64 @@ export default function CaseList() {
     );
   }
   
+  const selectedCase = cases.find(c => c.id === selectedCaseId);
+  
+  if (selectedCase) {
+    return (
+      <CaseTranscript 
+        caseItem={selectedCase} 
+        onBack={() => setSelectedCaseId(null)} 
+        onExport={() => exportCase(selectedCase.id)}
+        onToggleFavorite={() => toggleFavorite(selectedCase.id)}
+      />
+    );
+  }
+  
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {cases.map((caseItem) => {
         const date = new Date(caseItem.date).toLocaleDateString();
         const messageCount = caseItem.messages.length;
         
         return (
-          <Card key={caseItem.id}>
-            <CardHeader className="pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle>{caseItem.title}</CardTitle>
+          <Card 
+            key={caseItem.id}
+            className="cursor-pointer hover:border-primary/50 transition-colors"
+            onClick={() => setSelectedCaseId(caseItem.id)}
+          >
+            <div className="p-4 flex items-center justify-between">
+              <div>
+                <h3 className="font-medium">{caseItem.title}</h3>
+                <p className="text-xs text-muted-foreground">{date} • {messageCount} message{messageCount !== 1 ? 's' : ''}</p>
+              </div>
+              <div className="flex items-center gap-2">
                 <Button 
                   variant="ghost" 
                   size="icon" 
                   className="h-8 w-8"
-                  onClick={() => toggleFavorite(caseItem.id)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(caseItem.id);
+                  }}
                 >
                   <Heart 
-                    size={18} 
+                    size={16} 
                     className={caseItem.favorite ? "fill-red-500 text-red-500" : "text-muted-foreground"} 
                   />
-                  <span className="sr-only">
-                    {caseItem.favorite ? 'Remove from favorites' : 'Add to favorites'}
-                  </span>
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    exportCase(caseItem.id);
+                  }}
+                >
+                  <Download size={16} />
                 </Button>
               </div>
-              <CardDescription>{date}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                {messageCount} message{messageCount !== 1 ? 's' : ''}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="ml-auto flex items-center gap-1"
-                onClick={() => exportCase(caseItem.id)}
-              >
-                <Download size={16} />
-                <span>Export</span>
-              </Button>
-            </CardFooter>
+            </div>
           </Card>
         );
       })}

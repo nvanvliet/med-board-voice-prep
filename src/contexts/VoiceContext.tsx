@@ -55,7 +55,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     },
     onError: (error) => {
       console.error('ElevenLabs error:', error);
-      addMessage("There was an error connecting to ElevenLabs.", 'system');
+      addMessage("There was an error connecting to ElevenLabs.", 'ai');
     }
   });
 
@@ -104,7 +104,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       updateAudioLevel();
     } catch (error) {
       console.error('Failed to connect to ElevenLabs agent:', error);
-      addMessage("Failed to connect to ElevenLabs agent. Please check your microphone permissions.", 'system');
+      addMessage("Failed to connect to ElevenLabs agent. Please check your microphone permissions.", 'ai');
     }
   };
   
@@ -137,7 +137,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await connectToAgent();
     } catch (error) {
       console.error('Error accessing microphone', error);
-      addMessage("Could not access microphone. Please check your browser permissions.", 'system');
+      addMessage("Could not access microphone. Please check your browser permissions.", 'ai');
       setIsListening(false);
     }
   };
@@ -156,7 +156,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsSpeaking(false);
     } catch (error) {
       console.error('Text-to-speech error', error);
-      addMessage("Failed to generate speech.", 'system');
+      addMessage("Failed to generate speech.", 'ai');
       setIsSpeaking(false);
     }
   };
