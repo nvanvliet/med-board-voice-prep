@@ -132,16 +132,26 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setSessionActive(true);
       }
       
+      // Always set isListening to true when connecting
       setIsListening(true);
       setTranscription(''); // Reset transcription when starting a new session
       
       // Update audio level with animation frame
       updateAudioLevel();
       
+      // Show a toast notification that microphone is active
+      toast.success('Microphone turned on', {
+        position: 'top-center',
+        duration: 2000,
+      });
+      
       console.log('Connected to ElevenLabs agent, listening active');
     } catch (error) {
       console.error('Failed to connect to ElevenLabs agent:', error);
-      addMessage("Failed to connect to ElevenLabs agent. Please check your microphone permissions.", 'ai');
+      toast.error('Failed to connect microphone. Please check permissions.', {
+        position: 'top-center',
+        duration: 3000,
+      });
     }
   };
   

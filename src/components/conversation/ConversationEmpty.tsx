@@ -16,7 +16,7 @@ export default function ConversationEmpty() {
     // Start a new case first
     startNewCase();
     
-    // Then connect to the ElevenLabs agent
+    // Then connect to the ElevenLabs agent and automatically unmute the microphone
     setTimeout(() => {
       connectToAgent();
     }, 500); // Small delay to ensure case is initialized
