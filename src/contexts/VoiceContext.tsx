@@ -17,6 +17,7 @@ interface VoiceContextType {
   isListening: boolean;
   isSpeaking: boolean;
   audioLevel: number;
+  currentTranscription: string | null;
   setApiKey: (apiKey: string) => void;
   startListening: () => Promise<void>;
   stopListening: () => void;
@@ -45,6 +46,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
   const [sessionActive, setSessionActive] = useState(false);
+  const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
   const { addMessage } = useCase();
 
   // Use the ElevenLabs conversation hook
@@ -54,10 +56,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Handle user messages (transcriptions)
       if (message.source === 'user') {
+        // Show the transcription in real-time
+        setCurrentTranscription(message.message);
+        
         // Only add to chat history if final
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
           addMessage(message.message, 'user');
+          // Clear current transcription once it's final and added to history
+          setCurrentTranscription(null);
         }
       }
       // Handle AI responses
@@ -155,6 +162,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsListening(false);
       setAudioLevel(0);
       setSessionActive(false);
+      setCurrentTranscription(null);
       console.log('Disconnected from ElevenLabs agent');
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
@@ -170,6 +178,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       console.log('Muting microphone, conversation continues');
       setIsListening(false);
       setAudioLevel(0);
+      setCurrentTranscription(null);
     } else {
       // If not listening, resume microphone
       // Only start a new session if one isn't already active
@@ -211,6 +220,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const stopListening = () => {
     setIsListening(false);
     setAudioLevel(0);
+    setCurrentTranscription(null);
   };
 
   const speak = async (text: string) => {
@@ -235,6 +245,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       isListening,
       isSpeaking,
       audioLevel,
+      currentTranscription,
       setApiKey,
       startListening,
       stopListening,

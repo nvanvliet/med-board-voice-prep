@@ -8,13 +8,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase } = useCase();
-  const { isListening, isSpeaking, audioLevel } = useVoice();
+  const { isListening, isSpeaking, audioLevel, currentTranscription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change
+  // Auto-scroll to bottom when messages change or transcription updates
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages, currentTranscription]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -38,6 +38,25 @@ export default function ConversationView() {
             messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))
+          )}
+          
+          {/* Show current voice transcription while listening */}
+          {currentTranscription && (
+            <div className="ml-auto max-w-[80%]">
+              <div className="rounded-lg p-4 bg-[#1A1F2C] text-white rounded-br-none opacity-70">
+                <div className="flex items-center">
+                  <span>{currentTranscription}</span>
+                  <span className="ml-2 animate-pulse">•</span>
+                </div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 text-right">
+                {new Date().toLocaleTimeString('en-US', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  hour12: false
+                })}
+              </div>
+            </div>
           )}
         </div>
         <div ref={messagesEndRef} />
