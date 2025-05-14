@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -61,10 +60,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         console.log('Setting transcription to:', message.message);
         setTranscription(message.message);
         
-        // Only add to messages if final
+        // Only add to chat history if final
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
           addMessage(message.message, 'user');
+          // Don't clear transcription here, keep it visible
         }
       }
       else if (message.source === 'ai') {
@@ -153,14 +153,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // New function to toggle microphone without ending the conversation
+  // Function to toggle microphone without ending the conversation
   const toggleMicrophone = () => {
     if (isListening) {
       // If currently listening, just mute the microphone
       console.log('Muting microphone, conversation continues');
       setIsListening(false);
       setAudioLevel(0);
-      setTranscription(''); // Clear transcription when muting
+      // Don't clear transcription when muting, keep last transcription visible
     } else {
       // If not listening, resume microphone
       // Only start a new session if one isn't already active

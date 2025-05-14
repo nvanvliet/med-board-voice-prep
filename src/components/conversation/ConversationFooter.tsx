@@ -52,7 +52,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
           variant="outline"
           className={isListening ? "bg-medical-red text-white hover:bg-medical-red-dark" : ""}
           onClick={toggleMicrophone}
-          disabled={isSpeaking}
+          // Remove the disabled={isSpeaking} condition to allow toggling anytime
         >
           {isListening ? <MicOff size={18} /> : <Mic size={18} />}
         </Button>

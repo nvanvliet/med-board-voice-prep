@@ -42,7 +42,7 @@ export default function ConversationView() {
           </div>
         )}
         
-        {messages.length === 0 && !transcription ? (
+        {messages.length === 0 && !lastTranscription ? (
           <div className="text-center text-gray-500 my-8">
             {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
           </div>
@@ -52,8 +52,8 @@ export default function ConversationView() {
               <MessageBubble key={message.id} message={message} />
             ))}
             
-            {/* Show live transcript if there's text and we're listening */}
-            {isListening && lastTranscription && (
+            {/* Always show transcription if available, even when not listening */}
+            {lastTranscription && (
               <div className="ml-auto max-w-[80%] mb-4">
                 <div className="bg-medical-purple text-white rounded-lg rounded-br-none p-4">
                   {lastTranscription}
