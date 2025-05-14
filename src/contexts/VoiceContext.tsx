@@ -1,14 +1,14 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
 import { useConversation } from '@11labs/react';
 import { useCase } from '@/contexts/CaseContext';
 
-// Define the structure of ElevenLabs message
 interface ElevenLabsMessage {
   message: string;
   source: 'user' | 'ai';
-  is_final?: boolean; // Make it optional since some messages might not have this property
+  is_final?: boolean;
 }
 
 interface VoiceContextType {
@@ -17,7 +17,6 @@ interface VoiceContextType {
   isListening: boolean;
   isSpeaking: boolean;
   audioLevel: number;
-  transcription: string;
   setApiKey: (apiKey: string) => void;
   startListening: () => Promise<void>;
   stopListening: () => void;
@@ -45,7 +44,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [transcription, setTranscription] = useState<string>('');
   const [sessionActive, setSessionActive] = useState(false);
   const { addMessage } = useCase();
 
@@ -56,14 +54,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Handle user messages (transcriptions)
       if (message.source === 'user') {
-        // Always update live transcription, regardless of is_final
-        console.log('Setting transcription to:', message.message);
-        setTranscription(message.message);
-        
         // Only add to chat history if final
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
-          // Don't clear transcription immediately after adding message, wait for the next transcription
           addMessage(message.message, 'user');
         }
       }
@@ -71,11 +64,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       else if (message.source === 'ai') {
         console.log('Adding AI message to chat');
         
-        // First add the message to the chat history
+        // Add the message to the chat history
         addMessage(message.message, 'ai');
-        
-        // Then update transcription to show what AI is saying
-        setTranscription(message.message);
         
         // Trigger text-to-speech
         speak(message.message);
@@ -132,10 +122,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         });
         setSessionActive(true);
         
-        // Set a connecting message that will show in the UI
-        setTranscription('Connecting to AI assistant...');
-        
-        // Add the connecting message to the case
+        // Add the welcome message to the case
         addMessage('Connecting to AI assistant...', 'ai');
       }
       
@@ -234,7 +221,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));
       
       setIsSpeaking(false);
-      // Do NOT clear transcription after speaking
     } catch (error) {
       console.error('Text-to-speech error', error);
       addMessage("Failed to generate speech.", 'ai');
@@ -249,7 +235,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       isListening,
       isSpeaking,
       audioLevel,
-      transcription,
       setApiKey,
       startListening,
       stopListening,
