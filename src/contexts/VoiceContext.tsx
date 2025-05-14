@@ -72,7 +72,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         } 
         // Check if it's an AI assistant message - fix the type comparison here
         else if (source === 'assistant') {
-          // Add AI responses to the conversation - change 'ai' to match our system's expected type
+          // In our system we use 'ai' as the message type, but ElevenLabs uses 'assistant'
+          // So we need to map 'assistant' from ElevenLabs to 'ai' for our system
           addMessage(messageText, 'ai');
         }
       }
