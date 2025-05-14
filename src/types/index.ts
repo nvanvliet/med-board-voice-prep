@@ -7,7 +7,7 @@ export interface User {
 export interface Message {
   id: string;
   text: string;
-  sender: 'user' | 'ai';
+  sender: 'user' | 'ai' | 'system';
   timestamp: string; // ISO string
 }
 

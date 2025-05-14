@@ -17,8 +17,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
       <AuthProvider>
-        <VoiceProvider>
-          <CaseProvider>
+        <CaseProvider>
+          <VoiceProvider>
             <Toaster />
             <Sonner />
             <BrowserRouter>
@@ -28,8 +28,8 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
-          </CaseProvider>
-        </VoiceProvider>
+          </VoiceProvider>
+        </CaseProvider>
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
