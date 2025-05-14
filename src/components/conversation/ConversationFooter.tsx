@@ -22,11 +22,6 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
     // Add the user message
     addMessage(inputText, 'user');
     setInputText('');
-    
-    // Simulate AI response (in a real app, this would come from ElevenLabs)
-    setTimeout(() => {
-      addMessage('I am sorry, I am having trouble retrieving the information. Can you ask me for the vitals individually?', 'ai');
-    }, 1500);
   };
   
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -38,17 +33,6 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
   const toggleRecording = async () => {
     if (isListening) {
       disconnectFromAgent();
-      // Simulate speech to text conversion
-      addMessage("Yes, can you get the blood pressure? Can you also check to see how their breathing is and give me any other information?", "user");
-      
-      // Simulate AI response
-      setTimeout(() => {
-        addMessage("I am still having trouble retrieving the information. Let's try something different.", "ai");
-        
-        setTimeout(() => {
-          addMessage("I will provide you with the initial information without using the tool. The patient's blood pressure is one hundred fifty over ninety, heart rate is one hundred, respiratory rate is twenty, pulse oximetry is ninety eight percent on room air, temperature is ninety eight point six Fahrenheit, and glucose is one hundred ten. How would you like to proceed?", "ai");
-        }, 3000);
-      }, 2500);
     } else {
       await connectToAgent();
     }

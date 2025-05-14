@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
 import { useConversation } from '@11labs/react';
+import { useCase } from '@/contexts/CaseContext';
 
 interface VoiceContextType {
   config: ElevenLabsConfig;
@@ -36,15 +37,25 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioLevel, setAudioLevel] = useState(0);
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const { addMessage } = useCase();
 
   // Use the ElevenLabs conversation hook
   const conversation = useConversation({
     onMessage: (message) => {
       console.log('ElevenLabs message:', message);
+      
+      // Forward messages from ElevenLabs to the chat interface
+      if (message.source === 'user') {
+        addMessage(message.message, 'user');
+      }
+      else if (message.source === 'ai') {
+        addMessage(message.message, 'ai');
+        speak(message.message);
+      }
     },
     onError: (error) => {
       console.error('ElevenLabs error:', error);
-      toast.error('Error connecting to ElevenLabs');
+      addMessage("There was an error connecting to ElevenLabs.", 'system');
     }
   });
 
@@ -75,7 +86,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   
   const setApiKey = (apiKey: string) => {
     setConfig({ ...config, apiKey });
-    toast.success('API key set successfully');
   };
 
   const connectToAgent = async () => {
@@ -88,14 +98,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         agentId: AGENT_ID
       });
       
-      toast.success('Connected to ElevenLabs agent', { duration: 2000 });
       setIsListening(true);
       
       // Update audio level with animation frame
       updateAudioLevel();
     } catch (error) {
       console.error('Failed to connect to ElevenLabs agent:', error);
-      toast.error('Failed to connect to ElevenLabs agent');
+      addMessage("Failed to connect to ElevenLabs agent. Please check your microphone permissions.", 'system');
     }
   };
   
@@ -104,7 +113,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await conversation.endSession();
       setIsListening(false);
       setAudioLevel(0);
-      toast.info('Disconnected from ElevenLabs agent', { duration: 2000 });
     } catch (error) {
       console.error('Error disconnecting from agent:', error);
     }
@@ -129,7 +137,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await connectToAgent();
     } catch (error) {
       console.error('Error accessing microphone', error);
-      toast.error('Could not access microphone');
+      addMessage("Could not access microphone. Please check your browser permissions.", 'system');
       setIsListening(false);
     }
   };
@@ -142,18 +150,13 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     try {
       setIsSpeaking(true);
       
-      // Simulate speech by showing a toast message
-      toast.info(`AI: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`, {
-        duration: Math.max(2000, text.length * 50) // Longer text, longer toast
-      });
-      
       // Simulate speech time based on text length
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));
       
       setIsSpeaking(false);
     } catch (error) {
       console.error('Text-to-speech error', error);
-      toast.error('Failed to generate speech');
+      addMessage("Failed to generate speech.", 'system');
       setIsSpeaking(false);
     }
   };
