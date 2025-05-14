@@ -16,9 +16,9 @@ export default function CaseTranscript({ caseItem, onBack, onExport, onToggleFav
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between mb-4">
-        <Button variant="ghost" size="sm" className="flex items-center gap-1" onClick={onBack}>
+        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onBack}>
           <ArrowLeft size={16} />
-          <span>Back to cases</span>
+          <span className="sr-only">Back to cases</span>
         </Button>
         
         <div className="flex items-center gap-2">
