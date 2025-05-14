@@ -70,9 +70,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
             setCurrentTranscription(messageText);
           }
         } 
-        // Check if it's an AI assistant message
+        // Check if it's an AI assistant message - fix the type comparison here
         else if (source === 'assistant') {
-          // Add AI responses to the conversation
+          // Add AI responses to the conversation - change 'ai' to match our system's expected type
           addMessage(messageText, 'ai');
         }
       }
