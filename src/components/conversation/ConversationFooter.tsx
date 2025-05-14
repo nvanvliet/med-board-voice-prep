@@ -55,7 +55,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
           onClick={toggleRecording}
           disabled={isSpeaking}
         >
-          {isListening ? <Circle size={18} /> : <MicOff size={18} />}
+          {isListening ? <Circle size={18} /> : <Mic size={18} />}
         </Button>
         
         <div className="relative flex-1">
