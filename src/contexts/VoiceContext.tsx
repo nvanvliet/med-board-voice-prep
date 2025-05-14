@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ElevenLabsConfig } from '@/types';
 import { toast } from 'sonner';
@@ -17,22 +18,10 @@ interface VoiceContextType {
 const defaultConfig: ElevenLabsConfig = {
   voiceId: 'EXAVITQu4vr4xnSDxMaL', // Sarah voice
   modelId: 'eleven_multilingual_v2',
-  apiKey: 'using-convai-widget', // Using Convai widget instead of direct API
+  apiKey: '',
 };
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
-
-declare global {
-  interface Window {
-    elevenLabsConvai?: {
-      startConversation: () => void;
-      endConversation: () => void;
-      isWidgetOpen: () => boolean;
-      openWidget: () => void;
-      closeWidget: () => void;
-    };
-  }
-}
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
   const [config, setConfig] = useState<ElevenLabsConfig>(defaultConfig);
@@ -42,92 +31,94 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [audioContext, setAudioContext] = useState<AudioContext | null>(null);
   const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
 
-  // With Convai widget, we're always configured
+  // For simplicity, we'll consider it always configured
   const isConfigured = true;
   
   useEffect(() => {
-    // Check if the Convai widget is loaded
-    const checkConvaiWidget = setInterval(() => {
-      if (window.elevenLabsConvai) {
-        clearInterval(checkConvaiWidget);
-        console.log('ElevenLabs Convai widget loaded');
+    // Initialize audio context if needed
+    if (!audioContext) {
+      try {
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(context);
+      } catch (err) {
+        console.error('Could not initialize audio context', err);
       }
-    }, 1000);
+    }
     
-    return () => clearInterval(checkConvaiWidget);
+    return () => {
+      // Clean up any resources
+      if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+        mediaRecorder.stop();
+      }
+    };
   }, []);
   
   const setApiKey = (apiKey: string) => {
-    // No longer needed with Convai widget, but keeping the function for compatibility
-    toast.success('Using integrated ElevenLabs Convai widget');
+    setConfig({ ...config, apiKey });
+    toast.success('API key set successfully');
   };
 
   const startListening = async () => {
-    if (window.elevenLabsConvai) {
-      try {
-        // Make sure to initialize the audio context for audio level visualization
-        if (!audioContext) {
-          const context = new AudioContext();
-          setAudioContext(context);
-        }
-        
-        // Start the conversation without opening the widget visibly
-        window.elevenLabsConvai.startConversation();
-        setIsListening(true);
-        
-        // Request microphone access
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-          
-          // Create an audio analyzer to visualize audio levels
-          if (audioContext) {
-            const source = audioContext.createMediaStreamSource(stream);
-            const analyzer = audioContext.createAnalyser();
-            analyzer.fftSize = 256;
-            source.connect(analyzer);
-            
-            // Start audio level visualization
-            const dataArray = new Uint8Array(analyzer.frequencyBinCount);
-            
-            const updateAudioLevel = () => {
-              if (!isListening) return;
-              
-              analyzer.getByteFrequencyData(dataArray);
-              const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
-              const normalized = Math.min(average / 128, 1); // Normalize to 0-1
-              
-              setAudioLevel(normalized);
-              requestAnimationFrame(updateAudioLevel);
-            };
-            
-            updateAudioLevel();
-            
-            // Set up media recorder
-            const recorder = new MediaRecorder(stream);
-            setMediaRecorder(recorder);
-          }
-        } catch (err) {
-          console.error('Error accessing microphone', err);
-          toast.error('Could not access microphone');
-          setIsListening(false);
-        }
-        
-        toast.success('Microphone activated', { duration: 2000 });
-      } catch (error) {
-        console.error('Error starting Convai widget', error);
-        toast.error('Could not start conversation');
-        setIsListening(false);
+    try {
+      // Initialize audio context for visualizations
+      if (!audioContext) {
+        const context = new (window.AudioContext || (window as any).webkitAudioContext)();
+        setAudioContext(context);
       }
-    } else {
-      toast.error('ElevenLabs Convai widget not loaded yet');
+      
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      
+      // Create an audio analyzer to visualize audio levels
+      if (audioContext) {
+        const source = audioContext.createMediaStreamSource(stream);
+        const analyzer = audioContext.createAnalyser();
+        analyzer.fftSize = 256;
+        source.connect(analyzer);
+        
+        // Start audio level visualization
+        const dataArray = new Uint8Array(analyzer.frequencyBinCount);
+        
+        const updateAudioLevel = () => {
+          if (!isListening) return;
+          
+          analyzer.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((acc, val) => acc + val, 0) / dataArray.length;
+          const normalized = Math.min(average / 128, 1); // Normalize to 0-1
+          
+          setAudioLevel(normalized);
+          requestAnimationFrame(updateAudioLevel);
+        };
+        
+        updateAudioLevel();
+        
+        // Set up media recorder
+        const recorder = new MediaRecorder(stream);
+        setMediaRecorder(recorder);
+        
+        // Start recording
+        recorder.start();
+        
+        // Handle data availability
+        recorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            // Here we would normally send data to the ElevenLabs API
+            // But since we're removing that functionality, we'll just log it
+            console.log('Audio data available', event.data.size);
+          }
+        };
+      }
+      
+      setIsListening(true);
+      toast.success('Microphone activated', { duration: 2000 });
+    } catch (error) {
+      console.error('Error accessing microphone', error);
+      toast.error('Could not access microphone');
+      setIsListening(false);
     }
   };
 
   const stopListening = () => {
-    if (window.elevenLabsConvai) {
-      window.elevenLabsConvai.endConversation();
-    }
-    
     if (mediaRecorder && mediaRecorder.state !== 'inactive') {
       mediaRecorder.stop();
     }
@@ -141,9 +132,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     try {
       setIsSpeaking(true);
       
-      // With Convai widget, we don't need to directly handle speaking
-      // This function is kept for compatibility
-      console.log(`Text to speak: "${text}"`);
+      // Simulate speech by showing a toast message
+      toast.info(`AI: ${text.substring(0, 50)}${text.length > 50 ? '...' : ''}`, {
+        duration: Math.max(2000, text.length * 50) // Longer text, longer toast
+      });
       
       // Simulate speech time based on text length
       await new Promise(resolve => setTimeout(resolve, 100 * text.length));
