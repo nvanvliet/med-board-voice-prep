@@ -25,7 +25,7 @@ interface VoiceContextType {
   speak: (text: string) => Promise<void>;
   connectToAgent: () => Promise<void>;
   disconnectFromAgent: () => Promise<void>;
-  toggleMicrophone: () => void; // New function for toggling microphone
+  toggleMicrophone: () => void;
 }
 
 const defaultConfig: ElevenLabsConfig = {
@@ -65,6 +65,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         if (message.is_final === true) {
           console.log('Adding final user message to chat');
           addMessage(message.message, 'user');
+          // Clear transcription after adding final message to avoid duplication
+          setTranscription('');
         }
       }
       // Handle AI responses
@@ -159,6 +161,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   // Function to toggle microphone without ending the conversation
   const toggleMicrophone = () => {
+    console.log("Toggle microphone called, current state:", isListening);
+    
     if (isListening) {
       // If currently listening, just mute the microphone
       console.log('Muting microphone, conversation continues');

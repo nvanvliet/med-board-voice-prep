@@ -43,6 +43,11 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
     onEndConversation();
   };
   
+  const handleMicToggle = () => {
+    console.log("Mic toggle clicked, current isListening state:", isListening);
+    toggleMicrophone();
+  };
+  
   return (
     <div className="border-t p-4">
       <div className="flex items-center gap-2">
@@ -51,8 +56,7 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
           size="icon"
           variant="outline"
           className={isListening ? "bg-medical-red text-white hover:bg-medical-red-dark" : ""}
-          onClick={toggleMicrophone}
-          // Allow toggling microphone even when AI is speaking
+          onClick={handleMicToggle}
         >
           {isListening ? <MicOff size={18} /> : <Mic size={18} />}
         </Button>

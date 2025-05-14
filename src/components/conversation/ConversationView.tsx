@@ -16,10 +16,12 @@ export default function ConversationView() {
   useEffect(() => {
     if (transcription && transcription.trim() !== '') {
       setLastTranscription(transcription);
-      // We assume transcription is always from the user in this context
-      setLastSpeakerType('user');
+      // We determine speaker type based on whether the AI is speaking
+      // If AI is speaking, show as AI, otherwise as user
+      setLastSpeakerType(isSpeaking ? 'ai' : 'user');
+      console.log("Updated transcription:", transcription, "Speaker:", isSpeaking ? 'ai' : 'user');
     }
-  }, [transcription]);
+  }, [transcription, isSpeaking]);
 
   // Auto-scroll to bottom when messages change or transcription updates
   useEffect(() => {
@@ -29,10 +31,12 @@ export default function ConversationView() {
   // Debug logging
   useEffect(() => {
     console.log("Current transcription:", transcription);
+    console.log("Last transcription:", lastTranscription);
     console.log("Is listening:", isListening);
     console.log("Is speaking:", isSpeaking);
     console.log("Last speaker type:", lastSpeakerType);
-  }, [transcription, isListening, isSpeaking, lastSpeakerType]);
+    console.log("Audio level:", audioLevel);
+  }, [transcription, lastTranscription, isListening, isSpeaking, lastSpeakerType, audioLevel]);
   
   // Track AI responses from messages
   useEffect(() => {
@@ -40,13 +44,11 @@ export default function ConversationView() {
     if (messages.length > 0) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage.sender === 'ai') {
-        // When new AI message arrives, clear any user transcription
-        if (lastSpeakerType === 'user') {
-          setLastSpeakerType('ai');
-        }
+        // When new AI message arrives, update speaker type
+        setLastSpeakerType('ai');
       }
     }
-  }, [messages, lastSpeakerType]);
+  }, [messages]);
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -80,9 +82,12 @@ export default function ConversationView() {
                     : 'bg-gray-100 text-gray-800 rounded-bl-none'
                   } rounded-lg p-4 animate-pulse-slow`}>
                   {lastTranscription}
-                  {(isListening && lastSpeakerType === 'user') || (isSpeaking && lastSpeakerType === 'ai') ? (
+                  {isListening && lastSpeakerType === 'user' && (
                     <span className="inline-block ml-1 animate-pulse">...</span>
-                  ) : null}
+                  )}
+                  {isSpeaking && lastSpeakerType === 'ai' && (
+                    <span className="inline-block ml-1 animate-pulse">...</span>
+                  )}
                 </div>
                 <div className={`text-xs text-gray-500 mt-1 ${lastSpeakerType === 'user' ? 'text-right' : 'text-left'}`}>
                   {new Date().toLocaleTimeString('en-US', {
