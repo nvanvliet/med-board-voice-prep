@@ -51,7 +51,12 @@ export const caseService = {
       .order('created_at', { ascending: true });
 
     if (error) throw error;
-    return data || [];
+    
+    // Cast the sender to the correct type
+    return (data || []).map(message => ({
+      ...message,
+      sender: message.sender as 'user' | 'ai' | 'system'
+    }));
   },
 
   async addMessage(caseId: string, text: string, sender: 'user' | 'ai' | 'system'): Promise<DatabaseCaseMessage> {
@@ -60,14 +65,19 @@ export const caseService = {
       .insert({
         case_id: caseId,
         message_text: text,
-        sender: sender as 'user' | 'ai' | 'system',
+        sender: sender,
         timestamp: new Date().toISOString(),
       })
       .select()
       .single();
 
     if (error) throw error;
-    return data;
+    
+    // Cast the sender to the correct type
+    return {
+      ...data,
+      sender: data.sender as 'user' | 'ai' | 'system'
+    };
   },
 
   convertDatabaseCaseToCase(dbCase: DatabaseCase, messages: DatabaseCaseMessage[] = []): Case {

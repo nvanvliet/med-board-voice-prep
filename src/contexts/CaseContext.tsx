@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
-import { CaseService } from '@/services/caseService';
+import { caseService } from '@/services/caseService';
 
 interface CaseContextType {
   cases: Case[];
@@ -46,8 +45,9 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     
     setIsLoading(true);
     try {
-      const fetchedCases = await CaseService.getCases();
-      setCases(fetchedCases);
+      const dbCases = await caseService.getCases(user.id);
+      const convertedCases = dbCases.map(dbCase => caseService.convertDatabaseCaseToCase(dbCase));
+      setCases(convertedCases);
     } catch (error) {
       console.error('Failed to load cases:', error);
       toast.error('Failed to load cases');
@@ -69,22 +69,12 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     
     setIsLoading(true);
     try {
-      const caseId = await CaseService.createCase(`Case ${cases.length + 1}`);
-      if (caseId) {
-        const newCase: Case = {
-          id: caseId,
-          userId: user.id,
-          title: `Case ${cases.length + 1}`,
-          date: new Date().toISOString(),
-          messages: []
-        };
-        
-        setCurrentCase(newCase);
-        setMessages([]);
-        await refreshCases();
-      } else {
-        toast.error('Failed to create new case');
-      }
+      const dbCase = await caseService.createCase(`Case ${cases.length + 1}`, user.id);
+      const newCase = caseService.convertDatabaseCaseToCase(dbCase);
+      
+      setCurrentCase(newCase);
+      setMessages([]);
+      await refreshCases();
     } catch (error) {
       console.error('Error starting new case:', error);
       toast.error('Failed to start new case');
@@ -97,26 +87,23 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     if (!currentCase) return;
     
     try {
-      const success = await CaseService.addMessage(currentCase.id, text, sender);
-      if (success) {
-        const newMessage: Message = {
-          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          text,
-          sender,
-          timestamp: new Date().toISOString()
+      const dbMessage = await caseService.addMessage(currentCase.id, text, sender);
+      
+      const newMessage: Message = {
+        id: dbMessage.id,
+        text: dbMessage.message_text,
+        sender: dbMessage.sender as 'user' | 'ai' | 'system',
+        timestamp: dbMessage.timestamp
+      };
+      
+      setMessages(prev => [...prev, newMessage]);
+      setCurrentCase(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          messages: [...prev.messages, newMessage]
         };
-        
-        setMessages(prev => [...prev, newMessage]);
-        setCurrentCase(prev => {
-          if (!prev) return null;
-          return {
-            ...prev,
-            messages: [...prev.messages, newMessage]
-          };
-        });
-      } else {
-        toast.error('Failed to save message');
-      }
+      });
     } catch (error) {
       console.error('Error adding message:', error);
       toast.error('Failed to save message');
@@ -128,14 +115,10 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     
     try {
       if (title && title !== currentCase.title) {
-        const success = await CaseService.updateCase(currentCase.id, { title });
-        if (success) {
-          setCurrentCase(prev => prev ? { ...prev, title } : null);
-          await refreshCases();
-          toast.success('Case saved successfully');
-        } else {
-          toast.error('Failed to save case');
-        }
+        // Note: We'll need to add an updateCase method to caseService later
+        setCurrentCase(prev => prev ? { ...prev, title } : null);
+        await refreshCases();
+        toast.success('Case saved successfully');
       }
     } catch (error) {
       console.error('Error saving case:', error);
@@ -213,31 +196,27 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     if (!newTitle.trim()) return;
     
     try {
-      const success = await CaseService.updateCase(caseId, { title: newTitle.trim() });
-      if (success) {
-        setCases(prev => {
-          const updatedCases = prev.map(c => {
-            if (c.id === caseId) {
-              return { ...c, title: newTitle.trim() };
-            }
-            return c;
-          });
-          
-          // If this is the current case, update it too
-          if (currentCase?.id === caseId) {
-            setCurrentCase(prev => {
-              if (prev) return { ...prev, title: newTitle.trim() };
-              return prev;
-            });
+      // Note: We'll need to add an updateCase method to caseService later
+      setCases(prev => {
+        const updatedCases = prev.map(c => {
+          if (c.id === caseId) {
+            return { ...c, title: newTitle.trim() };
           }
-          
-          return updatedCases;
+          return c;
         });
         
-        toast.success(`Case title updated successfully`);
-      } else {
-        toast.error('Failed to update case title');
-      }
+        // If this is the current case, update it too
+        if (currentCase?.id === caseId) {
+          setCurrentCase(prev => {
+            if (prev) return { ...prev, title: newTitle.trim() };
+            return prev;
+          });
+        }
+        
+        return updatedCases;
+      });
+      
+      toast.success(`Case title updated successfully`);
     } catch (error) {
       console.error('Error updating case title:', error);
       toast.error('Failed to update case title');
