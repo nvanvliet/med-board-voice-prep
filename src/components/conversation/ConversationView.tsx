@@ -7,7 +7,7 @@ import ConversationFooter from './ConversationFooter';
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 export default function ConversationView() {
-  const { messages, endCurrentCase, currentCase } = useCase();
+  const { messages, endCurrentCase, currentCase, isLoading } = useCase();
   const { isListening, isSpeaking, audioLevel, currentTranscription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -15,6 +15,19 @@ export default function ConversationView() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, currentTranscription]);
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col h-[calc(100vh-64px)]">
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Loading case...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
@@ -37,7 +50,10 @@ export default function ConversationView() {
           ) : (
             <div className="text-center p-8">
               <div className="text-xl font-semibold mb-4">Exam in Progress</div>
-              <p className="text-muted-foreground">Your conversation is being recorded, but the transcript is hidden during the exam.</p>
+              <p className="text-muted-foreground">Your conversation is being recorded and saved to the database.</p>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Messages: {messages.length}
+              </p>
             </div>
           )}
         </div>

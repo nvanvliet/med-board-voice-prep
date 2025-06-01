@@ -1,20 +1,24 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
 import { toast } from 'sonner';
+import { CaseService } from '@/services/caseService';
 
 interface CaseContextType {
   cases: Case[];
   currentCase: Case | null;
   messages: Message[];
-  startNewCase: () => void;
+  isLoading: boolean;
+  startNewCase: () => Promise<void>;
   endCurrentCase: () => void;
-  saveCurrentCase: (title?: string) => void;
-  addMessage: (text: string, sender: 'user' | 'ai') => void;
+  saveCurrentCase: (title?: string) => Promise<void>;
+  addMessage: (text: string, sender: 'user' | 'ai') => Promise<void>;
   exportCase: (caseId: string) => void;
   toggleFavorite: (caseId: string) => void;
-  updateCaseTitle: (caseId: string, newTitle: string) => void;
+  updateCaseTitle: (caseId: string, newTitle: string) => Promise<void>;
   favoriteCases: Case[];
+  refreshCases: () => Promise<void>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -24,104 +28,127 @@ export function CaseProvider({ children }: { children: ReactNode }) {
   const [cases, setCases] = useState<Case[]>([]);
   const [currentCase, setCurrentCase] = useState<Case | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Load saved cases from localStorage
+  // Load cases from Supabase when user changes
   useEffect(() => {
     if (user) {
-      const savedCases = localStorage.getItem(`medical-cases-${user.id}`);
-      if (savedCases) {
-        try {
-          setCases(JSON.parse(savedCases));
-        } catch (error) {
-          console.error('Failed to parse saved cases', error);
-        }
-      }
+      refreshCases();
     } else {
       setCases([]);
+      setCurrentCase(null);
+      setMessages([]);
     }
   }, [user]);
 
-  // Save cases to localStorage when they change
-  useEffect(() => {
-    if (user && cases.length > 0) {
-      localStorage.setItem(`medical-cases-${user.id}`, JSON.stringify(cases));
+  const refreshCases = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const fetchedCases = await CaseService.getCases();
+      setCases(fetchedCases);
+    } catch (error) {
+      console.error('Failed to load cases:', error);
+      toast.error('Failed to load cases');
+    } finally {
+      setIsLoading(false);
     }
-  }, [cases, user]);
+  };
 
   // Get favorite cases (sorted by date)
   const favoriteCases = cases
     .filter(c => c.favorite)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const startNewCase = () => {
+  const startNewCase = async () => {
     if (!user) {
       toast.error('You must be signed in to start a case');
       return;
     }
     
-    const newCase: Case = {
-      id: `case-${Date.now()}`,
-      userId: user.id,
-      title: `Case ${cases.length + 1}`,
-      date: new Date().toISOString(),
-      messages: []
-    };
-    
-    setCurrentCase(newCase);
-    setMessages([]);
-    // Removed toast notification: toast.success('New case started');
+    setIsLoading(true);
+    try {
+      const caseId = await CaseService.createCase(`Case ${cases.length + 1}`);
+      if (caseId) {
+        const newCase: Case = {
+          id: caseId,
+          userId: user.id,
+          title: `Case ${cases.length + 1}`,
+          date: new Date().toISOString(),
+          messages: []
+        };
+        
+        setCurrentCase(newCase);
+        setMessages([]);
+        await refreshCases();
+      } else {
+        toast.error('Failed to create new case');
+      }
+    } catch (error) {
+      console.error('Error starting new case:', error);
+      toast.error('Failed to start new case');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const addMessage = (text: string, sender: 'user' | 'ai') => {
+  const addMessage = async (text: string, sender: 'user' | 'ai') => {
     if (!currentCase) return;
     
-    const newMessage: Message = {
-      id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-      text,
-      sender,
-      timestamp: new Date().toISOString()
-    };
-    
-    setMessages(prev => [...prev, newMessage]);
-    setCurrentCase(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        messages: [...prev.messages, newMessage]
-      };
-    });
+    try {
+      const success = await CaseService.addMessage(currentCase.id, text, sender);
+      if (success) {
+        const newMessage: Message = {
+          id: `msg-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+          text,
+          sender,
+          timestamp: new Date().toISOString()
+        };
+        
+        setMessages(prev => [...prev, newMessage]);
+        setCurrentCase(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            messages: [...prev.messages, newMessage]
+          };
+        });
+      } else {
+        toast.error('Failed to save message');
+      }
+    } catch (error) {
+      console.error('Error adding message:', error);
+      toast.error('Failed to save message');
+    }
   };
 
-  const saveCurrentCase = (title?: string) => {
+  const saveCurrentCase = async (title?: string) => {
     if (!currentCase || !user) return;
     
-    const updatedCase: Case = {
-      ...currentCase,
-      title: title || currentCase.title,
-      messages
-    };
-    
-    setCases(prev => {
-      const exists = prev.find(c => c.id === currentCase.id);
-      if (exists) {
-        return prev.map(c => c.id === currentCase.id ? updatedCase : c);
-      } else {
-        return [...prev, updatedCase];
+    try {
+      if (title && title !== currentCase.title) {
+        const success = await CaseService.updateCase(currentCase.id, { title });
+        if (success) {
+          setCurrentCase(prev => prev ? { ...prev, title } : null);
+          await refreshCases();
+          toast.success('Case saved successfully');
+        } else {
+          toast.error('Failed to save case');
+        }
       }
-    });
-    
-    toast.success('Case saved successfully');
+    } catch (error) {
+      console.error('Error saving case:', error);
+      toast.error('Failed to save case');
+    }
   };
 
   const endCurrentCase = () => {
     if (currentCase) {
-      // Always save the case when ending it (even if it has no messages)
-      saveCurrentCase();
-      
-      // Clear the current case state
       setCurrentCase(null);
       setMessages([]);
       toast.info('Case ended and saved to My Cases');
+      refreshCases();
     }
   };
 
@@ -182,37 +209,47 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateCaseTitle = (caseId: string, newTitle: string) => {
+  const updateCaseTitle = async (caseId: string, newTitle: string) => {
     if (!newTitle.trim()) return;
     
-    setCases(prev => {
-      const updatedCases = prev.map(c => {
-        if (c.id === caseId) {
-          return { ...c, title: newTitle.trim() };
-        }
-        return c;
-      });
-      
-      // If this is the current case, update it too
-      if (currentCase?.id === caseId) {
-        setCurrentCase(prev => {
-          if (prev) return { ...prev, title: newTitle.trim() };
-          return prev;
+    try {
+      const success = await CaseService.updateCase(caseId, { title: newTitle.trim() });
+      if (success) {
+        setCases(prev => {
+          const updatedCases = prev.map(c => {
+            if (c.id === caseId) {
+              return { ...c, title: newTitle.trim() };
+            }
+            return c;
+          });
+          
+          // If this is the current case, update it too
+          if (currentCase?.id === caseId) {
+            setCurrentCase(prev => {
+              if (prev) return { ...prev, title: newTitle.trim() };
+              return prev;
+            });
+          }
+          
+          return updatedCases;
         });
+        
+        toast.success(`Case title updated successfully`);
+      } else {
+        toast.error('Failed to update case title');
       }
-      
-      return updatedCases;
-    });
-    
-    toast.success(`Case title updated successfully`);
+    } catch (error) {
+      console.error('Error updating case title:', error);
+      toast.error('Failed to update case title');
+    }
   };
 
   return (
     <CaseContext.Provider value={{
-      // Return sorted cases
       cases: [...cases].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
       currentCase,
       messages,
+      isLoading,
       startNewCase,
       endCurrentCase,
       saveCurrentCase,
@@ -220,7 +257,8 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       exportCase,
       toggleFavorite,
       updateCaseTitle,
-      favoriteCases
+      favoriteCases,
+      refreshCases
     }}>
       {children}
     </CaseContext.Provider>

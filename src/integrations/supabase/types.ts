@@ -9,7 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      case_messages: {
+        Row: {
+          case_id: string
+          created_at: string
+          id: string
+          message_text: string
+          sender: string
+          timestamp: string
+        }
+        Insert: {
+          case_id: string
+          created_at?: string
+          id?: string
+          message_text: string
+          sender: string
+          timestamp?: string
+        }
+        Update: {
+          case_id?: string
+          created_at?: string
+          id?: string
+          message_text?: string
+          sender?: string
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_messages_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          audio_file_name: string | null
+          audio_file_url: string | null
+          case_notes: string | null
+          created_at: string
+          date_created: string
+          duration_seconds: number | null
+          id: string
+          title: string
+          transcript: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          audio_file_name?: string | null
+          audio_file_url?: string | null
+          case_notes?: string | null
+          created_at?: string
+          date_created?: string
+          duration_seconds?: number | null
+          id?: string
+          title: string
+          transcript?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          audio_file_name?: string | null
+          audio_file_url?: string | null
+          case_notes?: string | null
+          created_at?: string
+          date_created?: string
+          duration_seconds?: number | null
+          id?: string
+          title?: string
+          transcript?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
