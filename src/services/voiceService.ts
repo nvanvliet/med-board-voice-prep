@@ -1,3 +1,4 @@
+
 import { useConversation } from '@11labs/react';
 import { ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { toast } from 'sonner';
@@ -13,11 +14,17 @@ export function useVoiceService(
       // Log the message to debug structure
       console.log('Received message from ElevenLabs:', message);
       
-      // Check if message has correct structure
-      if ('message' in message && 'source' in message) {
+      // Handle different message types from ElevenLabs
+      if (message.type === 'user_transcript') {
+        // This is a user transcription (either interim or final)
+        handleUserTranscript(message.message, message.is_final);
+      } else if (message.type === 'agent_response') {
+        // This is an AI response
+        handleAgentResponse(message.message);
+      } else if ('message' in message && 'source' in message) {
+        // Fallback for other message formats
         const messageText = message.message;
         const source = message.source;
-        
         handleMessageBySource(messageText, source);
       }
     },
@@ -27,30 +34,53 @@ export function useVoiceService(
     }
   });
 
+  const handleUserTranscript = (text: string, isFinal: boolean) => {
+    console.log('User transcript:', { text, isFinal });
+    
+    if (isFinal) {
+      // This is the final transcription - add it as a permanent message
+      onMessageCallback(text, 'user');
+      
+      // Clear any live transcription
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(null);
+      }
+    } else {
+      // This is interim transcription - show it live
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(text);
+      }
+    }
+  };
+
+  const handleAgentResponse = (text: string) => {
+    console.log('Agent response:', text);
+    
+    // Add AI response as permanent message
+    onMessageCallback(text, 'ai');
+    
+    // Clear any live transcription
+    if (onTranscriptionCallback) {
+      onTranscriptionCallback(null);
+    }
+  };
+
   const handleMessageBySource = (messageText: string, source: string) => {
     console.log('Processing message:', { messageText, source });
     
     if (source === 'user') {
-      // Show live transcription immediately
-      if (onTranscriptionCallback) {
-        onTranscriptionCallback(messageText);
-      }
-      
-      // Add the message immediately so it persists
+      // Add user message immediately as permanent
       onMessageCallback(messageText, 'user');
       
-      // Clear transcription after a brief moment to show it's been processed
-      setTimeout(() => {
-        if (onTranscriptionCallback) {
-          onTranscriptionCallback(null);
-        }
-      }, 500);
-      
-    } else {
-      // For AI messages, add immediately and they will persist
+      // Clear any live transcription
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(null);
+      }
+    } else if (source === 'agent' || source === 'ai') {
+      // Add AI message as permanent
       onMessageCallback(messageText, 'ai');
       
-      // Clear any pending transcription when AI responds
+      // Clear any live transcription
       if (onTranscriptionCallback) {
         onTranscriptionCallback(null);
       }
