@@ -8,13 +8,21 @@ const corsHeaders = {
 }
 
 interface ElevenLabsWebhookPayload {
-  conversation_id: string
-  agent_id: string
-  transcript: string
-  duration_ms: number
+  project_id: string
+  request_id: string
+  input_text: string
+  output_audio_url: string
+  status: string
   created_at: string
-  user_id?: string
-  metadata?: any
+  character_count: number
+  voice_id: string
+  model_id: string
+  voice_settings?: {
+    stability: number
+    similarity_boost: number
+    style?: number
+    use_speaker_boost?: boolean
+  }
 }
 
 serve(async (req) => {
@@ -37,14 +45,29 @@ serve(async (req) => {
     const payload: ElevenLabsWebhookPayload = await req.json()
     console.log('Webhook payload:', payload)
 
+    // Only process completed requests
+    if (payload.status !== 'completed') {
+      console.log(`Request ${payload.request_id} status: ${payload.status}, skipping`)
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Status not completed, skipping processing',
+          request_id: payload.request_id 
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
+    }
+
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Store the transcript in the database
-    // You can modify this logic based on how you want to associate the transcript with a case
+    // Find the most recent case or create a new one
     const { data: caseData, error: caseError } = await supabase
       .from('cases')
       .select('id')
@@ -52,16 +75,18 @@ serve(async (req) => {
       .limit(1)
       .single()
 
-    if (caseError) {
-      console.error('Error finding recent case:', caseError)
-      // Create a new case if none found
+    let caseId: string
+
+    if (caseError || !caseData) {
+      console.log('No recent case found, creating new case')
+      // Create a new case
       const { data: newCase, error: newCaseError } = await supabase
         .from('cases')
         .insert({
-          title: `ElevenLabs Call ${new Date().toISOString()}`,
-          transcript: payload.transcript,
-          duration_seconds: Math.floor(payload.duration_ms / 1000),
-          user_id: payload.user_id || 'system' // You might need to handle user identification
+          title: `ElevenLabs TTS ${new Date().toISOString()}`,
+          transcript: payload.input_text,
+          audio_file_url: payload.output_audio_url,
+          user_id: 'system' // You might need to handle user identification differently
         })
         .select()
         .single()
@@ -71,33 +96,36 @@ serve(async (req) => {
         throw new Error('Failed to create case')
       }
 
-      console.log('Created new case:', newCase.id)
+      caseId = newCase.id
+      console.log('Created new case:', caseId)
     } else {
-      // Update the existing case with the transcript
+      // Update the existing case with the TTS data
+      caseId = caseData.id
       const { error: updateError } = await supabase
         .from('cases')
         .update({
-          transcript: payload.transcript,
-          duration_seconds: Math.floor(payload.duration_ms / 1000)
+          transcript: payload.input_text,
+          audio_file_url: payload.output_audio_url
         })
-        .eq('id', caseData.id)
+        .eq('id', caseId)
 
       if (updateError) {
         console.error('Error updating case:', updateError)
         throw new Error('Failed to update case')
       }
 
-      console.log('Updated case:', caseData.id)
+      console.log('Updated case:', caseId)
     }
 
     // Log the webhook event for debugging
-    console.log(`Successfully processed ElevenLabs webhook for conversation: ${payload.conversation_id}`)
+    console.log(`Successfully processed ElevenLabs webhook for request: ${payload.request_id}`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Transcript received and stored',
-        conversation_id: payload.conversation_id 
+        message: 'TTS request processed and stored',
+        request_id: payload.request_id,
+        case_id: caseId
       }),
       {
         status: 200,
