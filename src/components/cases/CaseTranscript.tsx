@@ -1,3 +1,4 @@
+
 import { Button } from '@/components/ui/button';
 import { Case } from '@/types';
 import { useState, useEffect } from 'react';
@@ -162,7 +163,14 @@ export default function CaseTranscript({
       
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">Full Transcript with Audio IDs</h3>
+          <div>
+            <h3 className="text-lg font-medium">Full Transcript</h3>
+            {caseItem.conversationId && (
+              <p className="text-sm text-muted-foreground mt-1">
+                Conversation ID: {caseItem.conversationId}
+              </p>
+            )}
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={loading || !transcript}>
               <Copy size={16} className="mr-2" />

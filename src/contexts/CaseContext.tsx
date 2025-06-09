@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -20,6 +19,7 @@ interface CaseContextType {
   favoriteCases: Case[];
   refreshCases: () => Promise<void>;
   updateTranscript: (text: string, sender: 'user' | 'ai', audioId?: string) => Promise<void>;
+  updateConversationId: (conversationId: string) => Promise<void>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -141,6 +141,34 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error('Error updating transcript:', error);
       toast.error('Failed to update transcript');
+    }
+  };
+
+  const updateConversationId = async (conversationId: string) => {
+    if (!currentCase) {
+      console.warn('No current case to update conversation ID for');
+      return;
+    }
+
+    try {
+      console.log('Updating conversation ID for case:', currentCase.id, 'with ID:', conversationId);
+      
+      // Save the conversation ID to Supabase
+      await caseService.updateCaseConversationId(currentCase.id, conversationId);
+      
+      // Update the current case in state
+      setCurrentCase(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          conversationId
+        };
+      });
+      
+      console.log('Conversation ID updated successfully');
+    } catch (error) {
+      console.error('Error updating conversation ID:', error);
+      toast.error('Failed to update conversation ID');
     }
   };
 
@@ -273,7 +301,8 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       updateCaseTitle,
       favoriteCases,
       refreshCases,
-      updateTranscript
+      updateTranscript,
+      updateConversationId
     }}>
       {children}
     </CaseContext.Provider>

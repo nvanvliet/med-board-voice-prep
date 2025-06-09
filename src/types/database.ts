@@ -9,6 +9,7 @@ export interface DatabaseCase {
   duration_seconds?: number;
   transcript?: string;
   case_notes?: string;
+  conversation_id?: string;
   created_at: string;
   updated_at: string;
 }

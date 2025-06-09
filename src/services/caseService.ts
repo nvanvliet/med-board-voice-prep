@@ -100,6 +100,25 @@ export const caseService = {
     console.log('Transcript updated successfully');
   },
 
+  async updateCaseConversationId(caseId: string, conversationId: string): Promise<void> {
+    console.log('Updating conversation ID for case:', caseId, 'with ID:', conversationId);
+    
+    const { error } = await supabase
+      .from('cases')
+      .update({ 
+        conversation_id: conversationId,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', caseId);
+
+    if (error) {
+      console.error('Error updating conversation ID:', error);
+      throw error;
+    }
+    
+    console.log('Conversation ID updated successfully');
+  },
+
   async getCaseTranscript(caseId: string): Promise<string | null> {
     console.log('Fetching transcript for case:', caseId);
     
@@ -125,6 +144,7 @@ export const caseService = {
       userId: dbCase.user_id,
       title: dbCase.title,
       date: dbCase.date_created,
+      conversationId: dbCase.conversation_id,
       messages: messages.map(msg => ({
         id: msg.id,
         text: msg.message_text,

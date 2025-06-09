@@ -49,6 +49,7 @@ export type Database = {
           audio_file_name: string | null
           audio_file_url: string | null
           case_notes: string | null
+          conversation_id: string | null
           created_at: string
           date_created: string
           duration_seconds: number | null
@@ -62,6 +63,7 @@ export type Database = {
           audio_file_name?: string | null
           audio_file_url?: string | null
           case_notes?: string | null
+          conversation_id?: string | null
           created_at?: string
           date_created?: string
           duration_seconds?: number | null
@@ -75,6 +77,7 @@ export type Database = {
           audio_file_name?: string | null
           audio_file_url?: string | null
           case_notes?: string | null
+          conversation_id?: string | null
           created_at?: string
           date_created?: string
           duration_seconds?: number | null
