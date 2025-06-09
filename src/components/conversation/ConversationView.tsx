@@ -43,6 +43,27 @@ export default function ConversationView() {
           console.log('Transcript received in view:', event.detail);
         });
 
+        // Auto-start the conversation after widget is loaded
+        widget.addEventListener('load', () => {
+          console.log('Widget loaded, attempting to auto-start');
+          // Try to auto-start the conversation
+          setTimeout(() => {
+            try {
+              // Look for the start button and click it automatically
+              const startButton = widget.shadowRoot?.querySelector('button[data-testid="start-call"]') || 
+                                widget.shadowRoot?.querySelector('button:contains("Start call")') ||
+                                widget.shadowRoot?.querySelector('button');
+              
+              if (startButton) {
+                console.log('Auto-clicking start button');
+                (startButton as HTMLButtonElement).click();
+              }
+            } catch (error) {
+              console.log('Could not auto-start conversation:', error);
+            }
+          }, 1000);
+        });
+
         widgetRef.current.appendChild(widget);
         console.log('ElevenLabs widget added to conversation view');
       }
@@ -103,7 +124,7 @@ export default function ConversationView() {
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 my-8">
-              Use the voice widget below to start speaking with the AI assistant
+              Voice assistant is starting... The conversation will begin automatically.
             </div>
           ) : (
             messages.map((message) => (
@@ -116,9 +137,10 @@ export default function ConversationView() {
       
       {/* ElevenLabs ConvAI Widget */}
       <div className="border-t p-4">
-        <div ref={widgetRef} className="w-full flex justify-center mb-4 min-h-[150px] border-2 border-dashed border-gray-300 rounded-lg p-4">
-          <div className="text-center text-gray-500">
-            Loading voice widget...
+        <div ref={widgetRef} className="w-full flex justify-center mb-4 min-h-[150px]">
+          <div className="text-center text-gray-500 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
+            Loading voice assistant...
           </div>
         </div>
         
