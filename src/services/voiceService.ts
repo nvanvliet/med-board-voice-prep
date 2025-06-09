@@ -1,4 +1,3 @@
-
 import { useConversation } from '@11labs/react';
 import { ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { toast } from 'sonner';
@@ -32,25 +31,29 @@ export function useVoiceService(
     console.log('Processing message:', { messageText, source });
     
     if (source === 'user') {
-      // For user messages, show live transcription first
+      // Show live transcription immediately
       if (onTranscriptionCallback) {
         onTranscriptionCallback(messageText);
       }
       
-      // After a short delay, convert to final message and clear transcription
+      // Add the message immediately so it persists
+      onMessageCallback(messageText, 'user');
+      
+      // Clear transcription after a brief moment to show it's been processed
       setTimeout(() => {
-        onMessageCallback(messageText, 'user');
         if (onTranscriptionCallback) {
           onTranscriptionCallback(null);
         }
-      }, 1000); // Give 1 second to see the transcription
+      }, 500);
       
     } else {
-      // For AI messages, clear any pending transcription and add as final message
+      // For AI messages, add immediately and they will persist
+      onMessageCallback(messageText, 'ai');
+      
+      // Clear any pending transcription when AI responds
       if (onTranscriptionCallback) {
         onTranscriptionCallback(null);
       }
-      onMessageCallback(messageText, 'ai');
     }
   };
 

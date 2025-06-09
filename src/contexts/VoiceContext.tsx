@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
@@ -21,11 +20,10 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService(
     (text, source) => {
       console.log('Adding message to case:', { text, source });
-      // Handle messages from the voice service
-      if (source === 'user') {
-        addMessage(text, 'user');
-      } else {
-        addMessage(text, 'ai');
+      // Handle messages from the voice service - these should persist
+      addMessage(text, source);
+      
+      if (source === 'ai') {
         // Show that AI is speaking when we receive an AI message
         setIsSpeaking(true);
         // Simulate AI speaking duration based on text length (minimum 2 seconds, max 8 seconds)
@@ -33,7 +31,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setTimeout(() => setIsSpeaking(false), speakingDuration);
       }
     },
-    // Transcription callback - this shows live transcription
+    // Transcription callback - this shows live transcription only
     (transcription) => {
       console.log('Setting transcription:', transcription);
       setCurrentTranscription(transcription);
