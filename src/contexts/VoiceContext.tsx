@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
@@ -18,18 +17,20 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [elevenLabsService, setElevenLabsService] = useState<ElevenLabsService | null>(null);
   
   // Safely get case context
-  let addMessage, updateTranscript, currentCase;
+  let addMessage, updateTranscript, currentCase, updateConversationId;
   try {
     const caseContext = useCase();
     addMessage = caseContext.addMessage;
     updateTranscript = caseContext.updateTranscript;
     currentCase = caseContext.currentCase;
+    updateConversationId = caseContext.updateConversationId;
   } catch (error) {
     console.error('VoiceContext: useCase hook error:', error);
     // Provide fallback functions
     addMessage = async () => {};
     updateTranscript = async () => {};
     currentCase = null;
+    updateConversationId = async () => {};
   }
   
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
@@ -157,9 +158,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
       // Connect to the ElevenLabs agent
-      await conversation.startSession({
+      const conversationId = await conversation.startSession({
         agentId: ELEVEN_LABS_AGENT_ID
       });
+      
+      // Store the conversation ID in the current case
+      if (conversationId && updateConversationId) {
+        console.log('Setting conversation ID:', conversationId);
+        await updateConversationId(conversationId);
+      }
       
       return true;
     } catch (error) {

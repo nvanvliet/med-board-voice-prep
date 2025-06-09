@@ -7,22 +7,15 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface ElevenLabsWebhookPayload {
-  project_id: string
-  request_id: string
-  input_text: string
-  output_audio_url: string
-  status: string
+interface ElevenLabsConversationWebhookPayload {
+  conversation_id: string
+  agent_id: string
+  user_id?: string
+  status: 'conversation_ended' | 'conversation_started' | 'conversation_error'
+  transcript?: string
+  audio_url?: string
   created_at: string
-  character_count: number
-  voice_id: string
-  model_id: string
-  voice_settings?: {
-    stability: number
-    similarity_boost: number
-    style?: number
-    use_speaker_boost?: boolean
-  }
+  metadata?: any
 }
 
 // Function to verify webhook signature
@@ -57,6 +50,47 @@ async function verifySignature(payload: string, signature: string, secret: strin
   }
 }
 
+// Fetch conversation transcript from ElevenLabs API
+async function getConversationTranscript(conversationId: string, apiKey: string): Promise<string | null> {
+  try {
+    console.log(`Fetching transcript for conversation: ${conversationId}`)
+    
+    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      console.error(`Failed to fetch conversation: ${response.status} ${response.statusText}`)
+      return null
+    }
+
+    const conversationData = await response.json()
+    console.log('Conversation data received:', conversationData)
+    
+    // Extract transcript from conversation data
+    if (conversationData.transcript) {
+      return conversationData.transcript
+    }
+    
+    // If transcript is in messages format, concatenate them
+    if (conversationData.messages && Array.isArray(conversationData.messages)) {
+      const transcript = conversationData.messages
+        .map((msg: any) => `${msg.role}: ${msg.content}`)
+        .join('\n')
+      return transcript
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Error fetching conversation transcript:', error)
+    return null
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -71,7 +105,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('ElevenLabs webhook received')
+    console.log('ElevenLabs conversation webhook received')
     
     // Get the raw payload for signature verification
     const rawPayload = await req.text()
@@ -100,17 +134,17 @@ serve(async (req) => {
     console.log('Signature verified successfully')
     
     // Parse the webhook payload
-    const payload: ElevenLabsWebhookPayload = JSON.parse(rawPayload)
+    const payload: ElevenLabsConversationWebhookPayload = JSON.parse(rawPayload)
     console.log('Webhook payload:', payload)
 
-    // Only process completed requests
-    if (payload.status !== 'completed') {
-      console.log(`Request ${payload.request_id} status: ${payload.status}, skipping`)
+    // Only process conversation_ended events
+    if (payload.status !== 'conversation_ended') {
+      console.log(`Conversation ${payload.conversation_id} status: ${payload.status}, skipping transcript processing`)
       return new Response(
         JSON.stringify({ 
           success: true, 
-          message: 'Status not completed, skipping processing',
-          request_id: payload.request_id 
+          message: 'Status not conversation_ended, skipping processing',
+          conversation_id: payload.conversation_id 
         }),
         {
           status: 200,
@@ -122,28 +156,32 @@ serve(async (req) => {
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    const elevenLabsApiKey = Deno.env.get('ELEVENLABS_API_KEY')
+    
+    if (!elevenLabsApiKey) {
+      console.error('ELEVENLABS_API_KEY not found in environment')
+      throw new Error('Missing ElevenLabs API key')
+    }
     
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // Find the most recent case or create a new one
+    // Find the case with this conversation ID
     const { data: caseData, error: caseError } = await supabase
       .from('cases')
-      .select('id')
-      .order('created_at', { ascending: false })
-      .limit(1)
+      .select('id, title, transcript')
+      .eq('conversation_id', payload.conversation_id)
       .single()
 
-    let caseId: string
-
     if (caseError || !caseData) {
-      console.log('No recent case found, creating new case')
-      // Create a new case
+      console.log(`No case found with conversation ID: ${payload.conversation_id}`)
+      
+      // Create a new case if none exists
       const { data: newCase, error: newCaseError } = await supabase
         .from('cases')
         .insert({
-          title: `ElevenLabs TTS ${new Date().toISOString()}`,
-          transcript: payload.input_text,
-          audio_file_url: payload.output_audio_url,
+          title: `ElevenLabs Conversation ${new Date().toISOString()}`,
+          conversation_id: payload.conversation_id,
+          transcript: payload.transcript || '',
           user_id: 'system' // You might need to handle user identification differently
         })
         .select()
@@ -154,36 +192,53 @@ serve(async (req) => {
         throw new Error('Failed to create case')
       }
 
-      caseId = newCase.id
-      console.log('Created new case:', caseId)
-    } else {
-      // Update the existing case with the TTS data
-      caseId = caseData.id
-      const { error: updateError } = await supabase
-        .from('cases')
-        .update({
-          transcript: payload.input_text,
-          audio_file_url: payload.output_audio_url
-        })
-        .eq('id', caseId)
-
-      if (updateError) {
-        console.error('Error updating case:', updateError)
-        throw new Error('Failed to update case')
-      }
-
-      console.log('Updated case:', caseId)
+      console.log('Created new case:', newCase.id)
+      
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'New case created with conversation data',
+          conversation_id: payload.conversation_id,
+          case_id: newCase.id
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        }
+      )
     }
 
-    // Log the webhook event for debugging
-    console.log(`Successfully processed ElevenLabs webhook for request: ${payload.request_id}`)
+    // Fetch the full transcript from ElevenLabs API
+    const fullTranscript = await getConversationTranscript(payload.conversation_id, elevenLabsApiKey)
+    
+    // Use the fetched transcript or fallback to payload transcript
+    const transcriptToSave = fullTranscript || payload.transcript || caseData.transcript || ''
+    
+    console.log('Updating case with transcript length:', transcriptToSave.length)
+
+    // Update the existing case with the final transcript
+    const { error: updateError } = await supabase
+      .from('cases')
+      .update({
+        transcript: transcriptToSave,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', caseData.id)
+
+    if (updateError) {
+      console.error('Error updating case:', updateError)
+      throw new Error('Failed to update case')
+    }
+
+    console.log(`Successfully processed conversation completion for: ${payload.conversation_id}`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'TTS request processed and stored',
-        request_id: payload.request_id,
-        case_id: caseId
+        message: 'Conversation transcript processed and stored',
+        conversation_id: payload.conversation_id,
+        case_id: caseData.id,
+        transcript_length: transcriptToSave.length
       }),
       {
         status: 200,
@@ -192,7 +247,7 @@ serve(async (req) => {
     )
 
   } catch (error) {
-    console.error('Error processing ElevenLabs webhook:', error)
+    console.error('Error processing ElevenLabs conversation webhook:', error)
     
     return new Response(
       JSON.stringify({ 
