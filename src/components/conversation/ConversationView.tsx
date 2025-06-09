@@ -17,27 +17,60 @@ export default function ConversationView() {
 
   // Initialize ElevenLabs widget when component mounts
   useEffect(() => {
-    if (widgetRef.current && !widgetRef.current.querySelector('elevenlabs-convai')) {
-      // Create the widget element
-      const widget = document.createElement('elevenlabs-convai');
-      widget.setAttribute('agent-id', 'pbVKPG3uJWVU0KsvdQlO');
-      
-      // Add event listeners for transcript capture
-      widget.addEventListener('message', (event: any) => {
-        console.log('ElevenLabs widget message:', event.detail);
-        // Handle transcript messages here if needed
-      });
+    console.log('ConversationView useEffect triggered');
+    
+    const initializeWidget = () => {
+      if (widgetRef.current && !widgetRef.current.querySelector('elevenlabs-convai')) {
+        console.log('Creating ElevenLabs widget in conversation view');
+        
+        // Clear any existing content
+        widgetRef.current.innerHTML = '';
+        
+        // Create the widget element
+        const widget = document.createElement('elevenlabs-convai');
+        widget.setAttribute('agent-id', 'pbVKPG3uJWVU0KsvdQlO');
+        
+        // Add event listeners for transcript capture
+        widget.addEventListener('message', (event: any) => {
+          console.log('ElevenLabs widget message in conversation:', event.detail);
+        });
 
-      widgetRef.current.appendChild(widget);
+        widget.addEventListener('conversationStarted', (event: any) => {
+          console.log('Conversation started in view:', event);
+        });
 
-      // Load the script if not already loaded
-      if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
-        script.async = true;
-        script.type = 'text/javascript';
-        document.head.appendChild(script);
+        widget.addEventListener('transcript', (event: any) => {
+          console.log('Transcript received in view:', event.detail);
+        });
+
+        widgetRef.current.appendChild(widget);
+        console.log('ElevenLabs widget added to conversation view');
       }
+    };
+
+    // Check if script is already loaded
+    const existingScript = document.querySelector('script[src*="convai-widget-embed"]');
+    
+    if (existingScript) {
+      console.log('Script exists, initializing widget in conversation view');
+      setTimeout(initializeWidget, 500);
+    } else {
+      console.log('Loading ElevenLabs script in conversation view');
+      const script = document.createElement('script');
+      script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+      script.async = true;
+      script.type = 'text/javascript';
+      
+      script.onload = () => {
+        console.log('ElevenLabs script loaded in conversation view');
+        setTimeout(initializeWidget, 100);
+      };
+      
+      script.onerror = (error) => {
+        console.error('Failed to load ElevenLabs script in conversation view:', error);
+      };
+      
+      document.head.appendChild(script);
     }
   }, []);
 
@@ -83,8 +116,10 @@ export default function ConversationView() {
       
       {/* ElevenLabs ConvAI Widget */}
       <div className="border-t p-4">
-        <div ref={widgetRef} className="w-full flex justify-center mb-4">
-          {/* Widget will be inserted here by useEffect */}
+        <div ref={widgetRef} className="w-full flex justify-center mb-4 min-h-[150px] border-2 border-dashed border-gray-300 rounded-lg p-4">
+          <div className="text-center text-gray-500">
+            Loading voice widget...
+          </div>
         </div>
         
         <div className="mt-4">
