@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -193,7 +194,6 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       setCurrentCase(null);
       setMessages([]);
       setFullTranscript('');
-      toast.info('Case ended and saved to My Cases');
       refreshCases();
     }
   };

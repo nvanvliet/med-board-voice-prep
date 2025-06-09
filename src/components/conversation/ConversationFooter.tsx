@@ -44,11 +44,6 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
     
     // Then end the conversation case
     onEndConversation();
-    
-    toast.info('Conversation ended', {
-      position: 'top-center',
-      duration: 2000,
-    });
   };
   
   const handleMicToggle = () => {

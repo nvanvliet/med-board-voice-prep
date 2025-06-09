@@ -5,7 +5,6 @@ import { useVoice } from '@/contexts/VoiceContext';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
-import { toast } from 'sonner';
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase, isLoading } = useCase();
@@ -23,11 +22,6 @@ export default function ConversationView() {
     
     // Then end the conversation case
     endCurrentCase();
-    
-    toast.info('Conversation ended', {
-      position: 'top-center',
-      duration: 2000,
-    });
   };
 
   if (isLoading) {
