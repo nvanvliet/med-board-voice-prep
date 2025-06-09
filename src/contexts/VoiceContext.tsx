@@ -14,7 +14,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
-  const { addMessage } = useCase();
+  const { addMessage, updateTranscript } = useCase();
   
   // Use our custom hooks
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
@@ -25,6 +25,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Add the message to the case - this will make it persist in the database and UI
       await addMessage(text, source);
+      
+      // Also update the full transcript
+      await updateTranscript(text, source);
       
       // Handle AI speaking state
       if (source === 'ai') {

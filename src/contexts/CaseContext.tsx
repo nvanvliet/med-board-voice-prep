@@ -18,6 +18,7 @@ interface CaseContextType {
   updateCaseTitle: (caseId: string, newTitle: string) => Promise<void>;
   favoriteCases: Case[];
   refreshCases: () => Promise<void>;
+  updateTranscript: (text: string, sender: 'user' | 'ai') => Promise<void>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -28,6 +29,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
   const [currentCase, setCurrentCase] = useState<Case | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [fullTranscript, setFullTranscript] = useState<string>('');
 
   // Load cases from Supabase when user changes
   useEffect(() => {
@@ -37,6 +39,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       setCases([]);
       setCurrentCase(null);
       setMessages([]);
+      setFullTranscript('');
     }
   }, [user]);
 
@@ -74,6 +77,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       
       setCurrentCase(newCase);
       setMessages([]);
+      setFullTranscript('');
       await refreshCases();
     } catch (error) {
       console.error('Error starting new case:', error);
@@ -110,6 +114,27 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const updateTranscript = async (text: string, sender: 'user' | 'ai') => {
+    if (!currentCase) return;
+
+    try {
+      const timestamp = new Date().toLocaleTimeString();
+      const senderLabel = sender === 'user' ? 'User' : 'AI Assistant';
+      const transcriptEntry = `[${timestamp}] ${senderLabel}: ${text}\n`;
+      
+      const newTranscript = fullTranscript + transcriptEntry;
+      setFullTranscript(newTranscript);
+      
+      // Save the updated transcript to Supabase
+      await caseService.updateCaseTranscript(currentCase.id, newTranscript);
+      
+      console.log('Transcript updated:', transcriptEntry);
+    } catch (error) {
+      console.error('Error updating transcript:', error);
+      toast.error('Failed to update transcript');
+    }
+  };
+
   const saveCurrentCase = async (title?: string) => {
     if (!currentCase || !user) return;
     
@@ -130,6 +155,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     if (currentCase) {
       setCurrentCase(null);
       setMessages([]);
+      setFullTranscript('');
       toast.info('Case ended and saved to My Cases');
       refreshCases();
     }
@@ -237,7 +263,8 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       toggleFavorite,
       updateCaseTitle,
       favoriteCases,
-      refreshCases
+      refreshCases,
+      updateTranscript
     }}>
       {children}
     </CaseContext.Provider>

@@ -80,6 +80,15 @@ export const caseService = {
     };
   },
 
+  async updateCaseTranscript(caseId: string, transcript: string): Promise<void> {
+    const { error } = await supabase
+      .from('cases')
+      .update({ transcript })
+      .eq('id', caseId);
+
+    if (error) throw error;
+  },
+
   convertDatabaseCaseToCase(dbCase: DatabaseCase, messages: DatabaseCaseMessage[] = []): Case {
     return {
       id: dbCase.id,
