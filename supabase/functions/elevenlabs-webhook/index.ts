@@ -18,6 +18,19 @@ interface ElevenLabsConversationWebhookPayload {
   metadata?: any
 }
 
+interface ConversationDetails {
+  conversation_id: string
+  transcript: string
+  audio_url?: string
+  duration_seconds?: number
+  created_at: string
+  messages?: Array<{
+    role: string
+    content: string
+    timestamp?: string
+  }>
+}
+
 // Function to verify webhook signature
 async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
   try {
@@ -50,10 +63,10 @@ async function verifySignature(payload: string, signature: string, secret: strin
   }
 }
 
-// Fetch conversation transcript from ElevenLabs API
-async function getConversationTranscript(conversationId: string, apiKey: string): Promise<string | null> {
+// Enhanced function to fetch detailed conversation data from ElevenLabs API
+async function getConversationDetails(conversationId: string, apiKey: string): Promise<ConversationDetails | null> {
   try {
-    console.log(`Fetching transcript for conversation: ${conversationId}`)
+    console.log(`Fetching detailed conversation data for: ${conversationId}`)
     
     const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
       method: 'GET',
@@ -69,24 +82,51 @@ async function getConversationTranscript(conversationId: string, apiKey: string)
     }
 
     const conversationData = await response.json()
-    console.log('Conversation data received:', conversationData)
+    console.log('Full conversation data received:', JSON.stringify(conversationData, null, 2))
     
-    // Extract transcript from conversation data
+    // Extract all relevant information
+    const details: ConversationDetails = {
+      conversation_id: conversationId,
+      transcript: '',
+      created_at: conversationData.created_at || new Date().toISOString()
+    }
+
+    // Extract audio URL if available
+    if (conversationData.audio_url) {
+      details.audio_url = conversationData.audio_url
+    }
+
+    // Extract duration if available
+    if (conversationData.duration_seconds) {
+      details.duration_seconds = conversationData.duration_seconds
+    }
+
+    // Extract transcript from various possible formats
     if (conversationData.transcript) {
-      return conversationData.transcript
-    }
-    
-    // If transcript is in messages format, concatenate them
-    if (conversationData.messages && Array.isArray(conversationData.messages)) {
-      const transcript = conversationData.messages
-        .map((msg: any) => `${msg.role}: ${msg.content}`)
+      details.transcript = conversationData.transcript
+    } else if (conversationData.messages && Array.isArray(conversationData.messages)) {
+      // Store structured messages
+      details.messages = conversationData.messages.map((msg: any) => ({
+        role: msg.role || msg.sender || 'unknown',
+        content: msg.content || msg.message || '',
+        timestamp: msg.timestamp || msg.created_at
+      }))
+      
+      // Create a formatted transcript from messages
+      details.transcript = conversationData.messages
+        .map((msg: any) => {
+          const role = msg.role || msg.sender || 'unknown'
+          const content = msg.content || msg.message || ''
+          const timestamp = msg.timestamp || msg.created_at
+          const timeStr = timestamp ? new Date(timestamp).toLocaleTimeString() : ''
+          return `[${timeStr}] ${role === 'user' ? 'User' : 'Assistant'}: ${content}`
+        })
         .join('\n')
-      return transcript
     }
     
-    return null
+    return details
   } catch (error) {
-    console.error('Error fetching conversation transcript:', error)
+    console.error('Error fetching conversation details:', error)
     return null
   }
 }
@@ -168,21 +208,42 @@ serve(async (req) => {
     // Find the case with this conversation ID
     const { data: caseData, error: caseError } = await supabase
       .from('cases')
-      .select('id, title, transcript')
+      .select('id, title, transcript, user_id')
       .eq('conversation_id', payload.conversation_id)
       .single()
 
+    // Fetch detailed conversation data from ElevenLabs API
+    const conversationDetails = await getConversationDetails(payload.conversation_id, elevenLabsApiKey)
+    
+    if (!conversationDetails) {
+      console.error('Failed to fetch conversation details from ElevenLabs API')
+      throw new Error('Failed to fetch conversation details')
+    }
+
+    // Prepare the data to update/insert
+    const caseUpdateData = {
+      transcript: conversationDetails.transcript,
+      conversation_id: payload.conversation_id,
+      updated_at: new Date().toISOString(),
+      ...(conversationDetails.audio_url && { audio_file_url: conversationDetails.audio_url }),
+      ...(conversationDetails.duration_seconds && { duration_seconds: conversationDetails.duration_seconds })
+    }
+
     if (caseError || !caseData) {
-      console.log(`No case found with conversation ID: ${payload.conversation_id}`)
+      console.log(`No case found with conversation ID: ${payload.conversation_id}, creating new case`)
       
+      // Generate a meaningful case title based on conversation content
+      const caseTitle = conversationDetails.transcript.length > 0 
+        ? `Conversation ${new Date().toLocaleDateString()} - ${conversationDetails.transcript.substring(0, 50)}...`
+        : `ElevenLabs Conversation ${new Date().toISOString()}`
+
       // Create a new case if none exists
       const { data: newCase, error: newCaseError } = await supabase
         .from('cases')
         .insert({
-          title: `ElevenLabs Conversation ${new Date().toISOString()}`,
-          conversation_id: payload.conversation_id,
-          transcript: payload.transcript || '',
-          user_id: 'system' // You might need to handle user identification differently
+          title: caseTitle,
+          user_id: 'system', // You might need to handle user identification differently
+          ...caseUpdateData
         })
         .select()
         .single()
@@ -192,14 +253,37 @@ serve(async (req) => {
         throw new Error('Failed to create case')
       }
 
-      console.log('Created new case:', newCase.id)
+      console.log('Created new case:', newCase.id, 'with conversation data')
+      
+      // Store individual messages if available
+      if (conversationDetails.messages && conversationDetails.messages.length > 0) {
+        const messageInserts = conversationDetails.messages.map(msg => ({
+          case_id: newCase.id,
+          message_text: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'ai',
+          timestamp: msg.timestamp || new Date().toISOString()
+        }))
+
+        const { error: messagesError } = await supabase
+          .from('case_messages')
+          .insert(messageInserts)
+
+        if (messagesError) {
+          console.error('Error inserting messages:', messagesError)
+        } else {
+          console.log(`Inserted ${messageInserts.length} messages for new case`)
+        }
+      }
       
       return new Response(
         JSON.stringify({ 
           success: true, 
           message: 'New case created with conversation data',
           conversation_id: payload.conversation_id,
-          case_id: newCase.id
+          case_id: newCase.id,
+          transcript_length: conversationDetails.transcript.length,
+          audio_url: conversationDetails.audio_url,
+          duration_seconds: conversationDetails.duration_seconds
         }),
         {
           status: 200,
@@ -208,21 +292,12 @@ serve(async (req) => {
       )
     }
 
-    // Fetch the full transcript from ElevenLabs API
-    const fullTranscript = await getConversationTranscript(payload.conversation_id, elevenLabsApiKey)
-    
-    // Use the fetched transcript or fallback to payload transcript
-    const transcriptToSave = fullTranscript || payload.transcript || caseData.transcript || ''
-    
-    console.log('Updating case with transcript length:', transcriptToSave.length)
+    // Update the existing case with enhanced data
+    console.log('Updating existing case with enhanced conversation data:', caseData.id)
 
-    // Update the existing case with the final transcript
     const { error: updateError } = await supabase
       .from('cases')
-      .update({
-        transcript: transcriptToSave,
-        updated_at: new Date().toISOString()
-      })
+      .update(caseUpdateData)
       .eq('id', caseData.id)
 
     if (updateError) {
@@ -230,15 +305,47 @@ serve(async (req) => {
       throw new Error('Failed to update case')
     }
 
+    // Store/update individual messages if available
+    if (conversationDetails.messages && conversationDetails.messages.length > 0) {
+      // First, check if messages already exist for this case
+      const { data: existingMessages } = await supabase
+        .from('case_messages')
+        .select('id')
+        .eq('case_id', caseData.id)
+
+      if (!existingMessages || existingMessages.length === 0) {
+        // Insert new messages
+        const messageInserts = conversationDetails.messages.map(msg => ({
+          case_id: caseData.id,
+          message_text: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'ai',
+          timestamp: msg.timestamp || new Date().toISOString()
+        }))
+
+        const { error: messagesError } = await supabase
+          .from('case_messages')
+          .insert(messageInserts)
+
+        if (messagesError) {
+          console.error('Error inserting messages:', messagesError)
+        } else {
+          console.log(`Inserted ${messageInserts.length} messages for existing case`)
+        }
+      }
+    }
+
     console.log(`Successfully processed conversation completion for: ${payload.conversation_id}`)
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Conversation transcript processed and stored',
+        message: 'Conversation transcript and data processed and stored',
         conversation_id: payload.conversation_id,
         case_id: caseData.id,
-        transcript_length: transcriptToSave.length
+        transcript_length: conversationDetails.transcript.length,
+        audio_url: conversationDetails.audio_url,
+        duration_seconds: conversationDetails.duration_seconds,
+        messages_count: conversationDetails.messages?.length || 0
       }),
       {
         status: 200,
