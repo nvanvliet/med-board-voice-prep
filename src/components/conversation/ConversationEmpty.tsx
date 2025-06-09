@@ -2,44 +2,43 @@
 import { Button } from '@/components/ui/button';
 import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
-import { toast } from 'sonner';
+import ApiKeyPrompt from '@/components/voice/ApiKeyPrompt';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
-  const { isConfigured, connectToAgent } = useVoice();
-  
-  const handleStartExam = async () => {
-    if (!isConfigured) {
-      // We'll handle this in the parent component
-      return;
-    }
-    
-    // Start a new case first
-    startNewCase();
-    
-    // Then connect to the ElevenLabs agent and automatically unmute the microphone
-    setTimeout(async () => {
-      await connectToAgent();
-      toast.success('Starting new exam session', {
-        position: 'top-center',
-        duration: 2000,
-      });
-    }, 500); // Small delay to ensure case is initialized
-  };
-  
+  const { isConfigured } = useVoice();
+
+  if (!isConfigured) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] p-8">
+        <ApiKeyPrompt />
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)]">
-      <div className="text-center">
-        <h2 className="text-2xl font-semibold mb-3">May the odds be ever in your favor!</h2>
-        <p className="text-muted-foreground mb-6">Click the Start Exam button to begin</p>
+    <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] p-8">
+      <div className="max-w-md text-center space-y-6">
+        <div className="space-y-2">
+          <h2 className="text-2xl font-semibold">Ready to Practice?</h2>
+          <p className="text-muted-foreground">
+            Start a new oral board examination case to practice your clinical skills and decision-making.
+          </p>
+        </div>
         
-        <Button 
-          onClick={handleStartExam}
-          size="lg" 
-          className="bg-medical-purple hover:bg-medical-purple-dark px-8 py-6 text-lg"
-        >
-          Start Exam
-        </Button>
+        <div className="space-y-4">
+          <Button 
+            size="lg" 
+            className="w-full bg-medical-red hover:bg-medical-red-dark text-white"
+            onClick={startNewCase}
+          >
+            Start New Case
+          </Button>
+          
+          <p className="text-sm text-muted-foreground">
+            The AI examiner will present you with a clinical scenario and guide you through the examination process.
+          </p>
+        </div>
       </div>
     </div>
   );

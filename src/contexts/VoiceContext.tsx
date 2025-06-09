@@ -4,7 +4,7 @@ import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
 import { defaultVoiceConfig } from '@/config/voiceConfig';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
-import { useVoiceService } from '@/services/voiceService';
+import { SpeechToTextService } from '@/services/speechToTextService';
 import { toast } from 'sonner';
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -14,119 +14,92 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
+  const [speechToTextService, setSpeechToTextService] = useState<SpeechToTextService | null>(null);
   const { addMessage, updateTranscript } = useCase();
   
-  // Use our custom hooks
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
-  const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService(
-    // Message callback - for permanent messages
-    async (text, source) => {
-      console.log('Voice service adding permanent message:', { text, source });
-      
-      // Add the message to the case - this will make it persist in the database and UI
-      await addMessage(text, source);
-      
-      // Also update the full transcript
-      await updateTranscript(text, source);
-      
-      // Handle AI speaking state
-      if (source === 'ai') {
-        setIsSpeaking(true);
-        // Simulate AI speaking duration based on text length
-        const speakingDuration = Math.max(2000, Math.min(text.length * 80, 8000));
-        setTimeout(() => setIsSpeaking(false), speakingDuration);
-      }
-    },
-    // Transcription callback - for live transcription only
-    (transcription) => {
-      console.log('Setting live transcription:', transcription);
-      setCurrentTranscription(transcription);
-    }
-  );
 
-  // For simplicity, we'll consider it always configured
-  const isConfigured = true;
+  // For now, we'll consider it configured if we have an API key
+  const isConfigured = !!config.apiKey;
   
   const setApiKey = (apiKey: string) => {
-    setConfig({ ...config, apiKey });
+    const newConfig = { ...config, apiKey };
+    setConfig(newConfig);
+    
+    // Create new speech service with the API key
+    if (apiKey) {
+      setSpeechToTextService(new SpeechToTextService(apiKey));
+    }
   };
 
   const startConnection = async () => {
-    console.log('Starting voice connection...');
-    const success = await connectToAgent();
-    
-    if (success) {
+    if (!speechToTextService) {
+      toast.error('Please set your ElevenLabs API key first');
+      return false;
+    }
+
+    try {
+      await speechToTextService.startRecording((text, isFinal) => {
+        console.log('Transcription received:', { text, isFinal });
+        
+        if (isFinal) {
+          // Final transcription - add as permanent message and clear live transcription
+          addMessage(text, 'user');
+          updateTranscript(text, 'user');
+          setCurrentTranscription(null);
+        } else {
+          // Interim transcription - show live
+          setCurrentTranscription(text);
+        }
+      });
+
       setIsListening(true);
       updateAudioLevel(true);
-      console.log('Voice connection started successfully');
-    } else {
-      console.log('Failed to start voice connection');
+      
+      toast.success('Recording started', {
+        position: 'top-center',
+        duration: 2000,
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to start recording:', error);
+      toast.error('Failed to start recording. Please check microphone permissions.');
+      return false;
     }
-    
-    return success;
   };
   
   const endConnection = async () => {
-    console.log('Ending voice connection...');
-    const success = await disconnectFromAgent();
-    
-    if (success) {
-      setIsListening(false);
-      setIsSpeaking(false);
-      resetAudioLevel();
-      setCurrentTranscription(null);
-      console.log('Voice connection ended successfully');
+    if (speechToTextService) {
+      speechToTextService.stopRecording();
     }
     
-    return success;
-  };
-
-  // Function to toggle microphone
-  const toggleMicrophone = () => {
-    console.log("Toggle microphone called, current state:", isListening);
-    
-    if (isListening) {
-      // If currently listening, temporarily mute the microphone
-      toggleMicrophoneVolume(false);
-      
-      setIsListening(false);
-      resetAudioLevel();
-      setCurrentTranscription(null);
-      
-      toast.info('Microphone turned off', {
-        position: 'top-center',
-        duration: 2000,
-      });
-    } else {
-      // If not listening, resume microphone
-      toggleMicrophoneVolume(true);
-      
-      setIsListening(true);
-      updateAudioLevel(true);
-      
-      toast.success('Microphone turned on', {
-        position: 'top-center',
-        duration: 2000,
-      });
-    }
-  };
-
-  const startListening = async () => {
-    try {
-      // Connect to voice agent
-      await startConnection();
-    } catch (error) {
-      console.error('Error accessing microphone', error);
-      await addMessage("Could not access microphone. Please check your browser permissions.", 'ai');
-      setIsListening(false);
-    }
-  };
-
-  const stopListening = () => {
     setIsListening(false);
     setIsSpeaking(false);
     resetAudioLevel();
     setCurrentTranscription(null);
+    
+    return true;
+  };
+
+  const toggleMicrophone = () => {
+    if (isListening) {
+      endConnection();
+      toast.info('Recording stopped', {
+        position: 'top-center',
+        duration: 2000,
+      });
+    } else {
+      startConnection();
+    }
+  };
+
+  const startListening = async () => {
+    await startConnection();
+  };
+
+  const stopListening = () => {
+    endConnection();
   };
 
   const speak = async (text: string) => {
