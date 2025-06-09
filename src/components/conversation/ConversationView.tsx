@@ -110,49 +110,52 @@ export default function ConversationView() {
 
   return (
     <div className="flex flex-col h-[calc(100vh-64px)]">
-      <ScrollArea className="flex-1 p-4">
-        {/* Case title display */}
-        {currentCase && (
-          <div className="sticky top-0 bg-white/80 backdrop-blur-sm dark:bg-background/80 z-10 py-2 px-1 mb-4 border-b">
-            <h2 className="text-lg font-medium">{currentCase.title}</h2>
-            <p className="text-xs text-muted-foreground">
-              {new Date(currentCase.date).toLocaleString()}
-            </p>
+      {/* Case title display */}
+      {currentCase && (
+        <div className="bg-white/80 backdrop-blur-sm dark:bg-background/80 border-b p-4">
+          <h2 className="text-lg font-medium">{currentCase.title}</h2>
+          <p className="text-xs text-muted-foreground">
+            {new Date(currentCase.date).toLocaleString()}
+          </p>
+        </div>
+      )}
+      
+      <div className="flex-1 flex flex-col">
+        {/* ElevenLabs ConvAI Widget - Centered */}
+        <div className="flex-1 flex items-center justify-center p-8">
+          <div ref={widgetRef} className="w-full max-w-md">
+            <div className="text-center text-gray-500 flex flex-col items-center justify-center min-h-[300px]">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-4"></div>
+              <p>Loading voice assistant...</p>
+              <p className="text-sm mt-2">The conversation will start automatically</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Messages area - smaller and at bottom */}
+        {messages.length > 0 && (
+          <div className="border-t bg-muted/30">
+            <ScrollArea className="h-48 p-4">
+              <div className="space-y-2">
+                {messages.map((message) => (
+                  <MessageBubble key={message.id} message={message} />
+                ))}
+              </div>
+              <div ref={messagesEndRef} />
+            </ScrollArea>
           </div>
         )}
-        
-        <div className="space-y-4">
-          {messages.length === 0 ? (
-            <div className="text-center text-gray-500 my-8">
-              Voice assistant is starting... The conversation will begin automatically.
-            </div>
-          ) : (
-            messages.map((message) => (
-              <MessageBubble key={message.id} message={message} />
-            ))
-          )}
-        </div>
-        <div ref={messagesEndRef} />
-      </ScrollArea>
+      </div>
       
-      {/* ElevenLabs ConvAI Widget */}
+      {/* Controls */}
       <div className="border-t p-4">
-        <div ref={widgetRef} className="w-full flex justify-center mb-4 min-h-[150px]">
-          <div className="text-center text-gray-500 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary mr-2"></div>
-            Loading voice assistant...
-          </div>
-        </div>
-        
-        <div className="mt-4">
-          <Button
-            variant="destructive"
-            className="w-full"
-            onClick={endCurrentCase}
-          >
-            End Conversation
-          </Button>
-        </div>
+        <Button
+          variant="destructive"
+          className="w-full"
+          onClick={endCurrentCase}
+        >
+          End Conversation
+        </Button>
       </div>
     </div>
   );
