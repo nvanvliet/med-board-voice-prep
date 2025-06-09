@@ -18,15 +18,23 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   
   // Use our custom hooks
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
-  const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService((text, source) => {
-    // Handle messages from the voice service
-    if (source === 'user') {
-      addMessage(text, 'user');
-      setCurrentTranscription(null);
-    } else {
-      addMessage(text, 'ai');
+  const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService(
+    (text, source) => {
+      // Handle messages from the voice service
+      if (source === 'user') {
+        addMessage(text, 'user');
+      } else {
+        addMessage(text, 'ai');
+        setIsSpeaking(true);
+        // Simulate AI speaking duration based on text length
+        setTimeout(() => setIsSpeaking(false), Math.min(text.length * 100, 5000));
+      }
+    },
+    // Transcription callback
+    (transcription) => {
+      setCurrentTranscription(transcription);
     }
-  });
+  );
 
   // For simplicity, we'll consider it always configured
   const isConfigured = true;
@@ -51,6 +59,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     
     if (success) {
       setIsListening(false);
+      setIsSpeaking(false);
       resetAudioLevel();
       setCurrentTranscription(null);
     }
@@ -101,6 +110,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   const stopListening = () => {
     setIsListening(false);
+    setIsSpeaking(false);
     resetAudioLevel();
     setCurrentTranscription(null);
   };

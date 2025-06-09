@@ -48,12 +48,36 @@ export default function ConversationView() {
               {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
             </div>
           ) : (
-            <div className="text-center p-8">
-              <div className="text-xl font-semibold mb-4">Exam in Progress</div>
-              <p className="text-muted-foreground">Your conversation is being recorded and saved to the database.</p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Messages: {messages.length}
-              </p>
+            messages.map((message) => (
+              <MessageBubble key={message.id} message={message} />
+            ))
+          )}
+
+          {/* Live transcription display */}
+          {currentTranscription && (
+            <div className="ml-auto max-w-[80%]">
+              <div className="rounded-lg p-4 bg-gray-100 border-2 border-dashed border-gray-300 text-gray-700 rounded-br-none">
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                  <span className="text-xs text-gray-500">Speaking...</span>
+                </div>
+                {currentTranscription}
+              </div>
+              <div className="text-xs text-gray-500 mt-1 text-right">
+                Live transcription
+              </div>
+            </div>
+          )}
+
+          {/* AI speaking indicator */}
+          {isSpeaking && !currentTranscription && (
+            <div className="mr-auto max-w-[80%]">
+              <div className="rounded-lg p-4 bg-[#9b87f5] text-white rounded-bl-none">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
+                  <span className="text-sm">AI is speaking...</span>
+                </div>
+              </div>
             </div>
           )}
         </div>

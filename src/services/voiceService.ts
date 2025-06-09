@@ -4,7 +4,10 @@ import { ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { toast } from 'sonner';
 import { ConversationMessage } from '@/types/voice';
 
-export function useVoiceService(onMessageCallback: (text: string, source: 'user' | 'ai') => void) {
+export function useVoiceService(
+  onMessageCallback: (text: string, source: 'user' | 'ai') => void,
+  onTranscriptionCallback?: (text: string | null) => void
+) {
   // Initialize the ElevenLabs conversation
   const conversation = useConversation({
     onMessage: (message: any) => {
@@ -29,22 +32,32 @@ export function useVoiceService(onMessageCallback: (text: string, source: 'user'
   const handleMessageBySource = (messageText: string, source: string) => {
     // Check if it's a user message and handle transcription
     if (source === 'user') {
-      // For user messages, check if it's final or interim transcription
-      // Since we don't have a 'final' property directly, look for patterns
-      // that might indicate a final transcription
+      // Show live transcription for interim results
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(messageText);
+      }
+      
+      // Check if it's a final transcription
       const isFinal = messageText.trim().endsWith('.') || 
                       messageText.trim().endsWith('?') || 
-                      messageText.trim().endsWith('!');
+                      messageText.trim().endsWith('!') ||
+                      messageText.trim().length > 10; // Consider longer messages as likely final
       
       if (isFinal) {
-        // Final user transcript - add to messages
+        // Final user transcript - add to messages and clear transcription
         onMessageCallback(messageText, 'user');
-      } 
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(null);
+        }
+      }
     } 
     // Handle messages from the system (anything not from user)
     else if (source !== 'user') {
+      // Clear any pending transcription when AI responds
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(null);
+      }
       // Convert any non-user message to our internal message format
-      // We use 'as' to safely handle the type conversion
       onMessageCallback(messageText, 'ai');
     }
   };
@@ -79,6 +92,11 @@ export function useVoiceService(onMessageCallback: (text: string, source: 'user'
   
   const disconnectFromAgent = async () => {
     try {
+      // Clear transcription when disconnecting
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(null);
+      }
+      
       // End the ElevenLabs session
       await conversation.endSession();
       console.log('Disconnected from voice agent');
@@ -94,6 +112,10 @@ export function useVoiceService(onMessageCallback: (text: string, source: 'user'
       conversation.setVolume({ volume: 1 });
     } else {
       conversation.setVolume({ volume: 0 });
+      // Clear transcription when muting
+      if (onTranscriptionCallback) {
+        onTranscriptionCallback(null);
+      }
     }
   };
 
