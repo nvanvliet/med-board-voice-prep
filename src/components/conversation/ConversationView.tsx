@@ -1,20 +1,45 @@
 
 import { useEffect, useRef } from 'react';
 import { useCase } from '@/contexts/CaseContext';
-import { useVoice } from '@/contexts/VoiceContext';
 import MessageBubble from './MessageBubble';
-import ConversationFooter from './ConversationFooter';
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase, isLoading } = useCase();
-  const { isListening, isSpeaking, audioLevel, currentTranscription } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const widgetRef = useRef<HTMLDivElement>(null);
 
-  // Auto-scroll to bottom when messages change or transcription updates
+  // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, currentTranscription]);
+  }, [messages]);
+
+  // Initialize ElevenLabs widget when component mounts
+  useEffect(() => {
+    if (widgetRef.current && !widgetRef.current.querySelector('elevenlabs-convai')) {
+      // Create the widget element
+      const widget = document.createElement('elevenlabs-convai');
+      widget.setAttribute('agent-id', 'pbVKPG3uJWVU0KsvdQlO');
+      
+      // Add event listeners for transcript capture
+      widget.addEventListener('message', (event: any) => {
+        console.log('ElevenLabs widget message:', event.detail);
+        // Handle transcript messages here if needed
+      });
+
+      widgetRef.current.appendChild(widget);
+
+      // Load the script if not already loaded
+      if (!document.querySelector('script[src="https://unpkg.com/@elevenlabs/convai-widget-embed"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/@elevenlabs/convai-widget-embed';
+        script.async = true;
+        script.type = 'text/javascript';
+        document.head.appendChild(script);
+      }
+    }
+  }, []);
 
   if (isLoading) {
     return (
@@ -45,46 +70,33 @@ export default function ConversationView() {
         <div className="space-y-4">
           {messages.length === 0 ? (
             <div className="text-center text-gray-500 my-8">
-              {isListening ? 'Listening... Speak to the AI assistant' : 'Click the microphone icon to start speaking'}
+              Use the voice widget below to start speaking with the AI assistant
             </div>
           ) : (
             messages.map((message) => (
               <MessageBubble key={message.id} message={message} />
             ))
           )}
-
-          {/* Live transcription display */}
-          {currentTranscription && (
-            <div className="ml-auto max-w-[80%]">
-              <div className="rounded-lg p-4 bg-gray-100 border-2 border-dashed border-gray-300 text-gray-700 rounded-br-none">
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                  <span className="text-xs text-gray-500">Speaking...</span>
-                </div>
-                {currentTranscription}
-              </div>
-              <div className="text-xs text-gray-500 mt-1 text-right">
-                Live transcription
-              </div>
-            </div>
-          )}
-
-          {/* AI speaking indicator */}
-          {isSpeaking && !currentTranscription && (
-            <div className="mr-auto max-w-[80%]">
-              <div className="rounded-lg p-4 bg-[#9b87f5] text-white rounded-bl-none">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-white rounded-full animate-pulse"></div>
-                  <span className="text-sm">AI is speaking...</span>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>
       
-      <ConversationFooter onEndConversation={endCurrentCase} />
+      {/* ElevenLabs ConvAI Widget */}
+      <div className="border-t p-4">
+        <div ref={widgetRef} className="w-full flex justify-center mb-4">
+          {/* Widget will be inserted here by useEffect */}
+        </div>
+        
+        <div className="mt-4">
+          <Button
+            variant="destructive"
+            className="w-full"
+            onClick={endCurrentCase}
+          >
+            End Conversation
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
