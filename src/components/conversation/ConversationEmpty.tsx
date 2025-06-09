@@ -2,11 +2,10 @@
 import { Button } from '@/components/ui/button';
 import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
-import ApiKeyPrompt from '@/components/voice/ApiKeyPrompt';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
-  const { isConfigured, connectToAgent } = useVoice();
+  const { connectToAgent } = useVoice();
 
   const handleStartExam = async () => {
     // Start a new case first
@@ -15,14 +14,6 @@ export default function ConversationEmpty() {
     // Then connect to the ElevenLabs agent
     await connectToAgent();
   };
-
-  if (!isConfigured) {
-    return (
-      <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] p-8">
-        <ApiKeyPrompt />
-      </div>
-    );
-  }
 
   return (
     <div className="flex flex-col items-center justify-center h-[calc(100vh-64px)] p-8">
