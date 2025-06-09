@@ -44,31 +44,26 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   const isConfigured = !!config.apiKey;
   
-  // Process audio chunk immediately when received - based on your suggested pattern
+  // Process audio chunk immediately when received - this adds messages to the chat
   const processAudioChunk = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
-    if (!currentCase) {
-      console.warn('No current case available for transcript saving');
+    if (!currentCase || !text.trim()) {
+      console.warn('No current case available or empty text for message saving');
       return;
     }
 
     try {
-      console.log('Processing audio chunk:', { text, sender, audioId, caseId: currentCase.id });
+      console.log('Processing audio chunk for chat display:', { text, sender, audioId, caseId: currentCase.id });
       
-      // 1. Add message to conversation
-      await addMessage(text, sender);
+      // Add message to conversation chat immediately
+      await addMessage(text.trim(), sender);
       
-      // 2. Save transcript to Supabase immediately with proper formatting
-      const timestamp = new Date().toLocaleTimeString();
-      const senderLabel = sender === 'user' ? 'User' : 'AI Assistant';
-      const audioIdSuffix = audioId ? ` [Audio ID: ${audioId}]` : '';
+      // Also update transcript for record keeping
+      await updateTranscript(text.trim(), sender, audioId);
       
-      // 3. Update transcript in real-time
-      await updateTranscript(text, sender, audioId);
-      
-      console.log('Audio chunk processed successfully');
+      console.log('Audio chunk processed and displayed in chat successfully');
     } catch (error) {
-      console.error('Failed to process audio chunk:', error);
-      toast.error('Failed to save transcript');
+      console.error('Failed to process audio chunk for chat:', error);
+      toast.error('Failed to save message to chat');
     }
   };
   
@@ -77,26 +72,26 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     onMessage: (message: any) => {
       console.log('Received message from ElevenLabs:', message);
       
-      // Handle different message types from ElevenLabs
+      // Handle different message types from ElevenLabs and display them in chat
       if (message.type === 'user_transcript' && message.is_final) {
-        console.log('Final user transcript:', message.message);
+        console.log('Final user transcript - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
         setCurrentTranscription(null);
       } else if (message.type === 'user_transcript' && !message.is_final) {
-        console.log('Interim user transcript:', message.message);
+        console.log('Interim user transcript - showing as live transcription:', message.message);
         setCurrentTranscription(message.message);
       } else if (message.type === 'agent_response') {
-        console.log('Agent response:', message.message);
+        console.log('Agent response - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
         setCurrentTranscription(null);
-      } else if (message.source === 'user') {
-        console.log('User message (fallback):', message.message);
+      } else if (message.source === 'user' && message.message) {
+        console.log('User message (fallback) - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
         setCurrentTranscription(null);
-      } else if (message.source === 'ai' || message.source === 'agent') {
-        console.log('AI message (fallback):', message.message);
+      } else if ((message.source === 'ai' || message.source === 'agent') && message.message) {
+        console.log('AI message (fallback) - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
         setCurrentTranscription(null);
       }
@@ -131,7 +126,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     try {
       const result = await elevenLabsService.convertSpeechToText(audioBlob, config.modelId);
       if (result.text && result.text.trim()) {
-        // Process the transcript immediately
+        // Process the transcript immediately and add to chat
         await processAudioChunk(result.text.trim(), 'user', Date.now().toString());
         return result.text.trim();
       }

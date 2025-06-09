@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react';
 import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
 import MessageBubble from './MessageBubble';
+import LiveTranscription from './LiveTranscription';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
@@ -60,6 +61,9 @@ export default function ConversationView() {
               <MessageBubble key={message.id} message={message} />
             ))
           )}
+          
+          {/* Show live transcription while user is speaking */}
+          <LiveTranscription />
         </div>
         <div ref={messagesEndRef} />
       </ScrollArea>
