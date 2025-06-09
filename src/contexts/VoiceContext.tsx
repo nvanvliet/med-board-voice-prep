@@ -38,7 +38,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (message.type === 'user_transcript' && message.is_final) {
         console.log('Final user transcript:', message.message);
         addMessage(message.message, 'user');
-        updateTranscript(message.message, 'user', message.audio_id);
+        // Use audio_id from ElevenLabs if available, otherwise generate one
+        const audioId = message.audio_id || Date.now().toString();
+        updateTranscript(message.message, 'user', audioId);
         setCurrentTranscription(null);
       } else if (message.type === 'user_transcript' && !message.is_final) {
         console.log('Interim user transcript:', message.message);
@@ -46,15 +48,19 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       } else if (message.type === 'agent_response') {
         console.log('Agent response:', message.message);
         addMessage(message.message, 'ai');
+        updateTranscript(message.message, 'ai');
         setCurrentTranscription(null);
       } else if (message.source === 'user') {
         console.log('User message (fallback):', message.message);
         addMessage(message.message, 'user');
-        updateTranscript(message.message, 'user', message.audio_id);
+        // Use audio_id from ElevenLabs if available, otherwise generate one
+        const audioId = message.audio_id || Date.now().toString();
+        updateTranscript(message.message, 'user', audioId);
         setCurrentTranscription(null);
       } else if (message.source === 'ai' || message.source === 'agent') {
         console.log('AI message (fallback):', message.message);
         addMessage(message.message, 'ai');
+        updateTranscript(message.message, 'ai');
         setCurrentTranscription(null);
       }
     },

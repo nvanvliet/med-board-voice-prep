@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseCase, DatabaseCaseMessage } from '@/types/database';
 import { Case, Message } from '@/types';
@@ -9,6 +10,7 @@ export const caseService = {
       .insert({
         title,
         user_id: userId,
+        transcript: '', // Initialize with empty transcript
       })
       .select()
       .single();
@@ -80,6 +82,8 @@ export const caseService = {
   },
 
   async updateCaseTranscript(caseId: string, transcript: string): Promise<void> {
+    console.log('Updating transcript for case:', caseId, 'with content:', transcript.substring(0, 100) + '...');
+    
     const { error } = await supabase
       .from('cases')
       .update({ 
@@ -88,10 +92,17 @@ export const caseService = {
       })
       .eq('id', caseId);
 
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating transcript:', error);
+      throw error;
+    }
+    
+    console.log('Transcript updated successfully');
   },
 
   async getCaseTranscript(caseId: string): Promise<string | null> {
+    console.log('Fetching transcript for case:', caseId);
+    
     const { data, error } = await supabase
       .from('cases')
       .select('transcript')
@@ -99,10 +110,12 @@ export const caseService = {
       .single();
 
     if (error) {
+      console.error('Error fetching transcript:', error);
       if (error.code === 'PGRST116') return null;
       throw error;
     }
     
+    console.log('Fetched transcript:', data?.transcript ? 'Found transcript' : 'No transcript');
     return data?.transcript || null;
   },
 

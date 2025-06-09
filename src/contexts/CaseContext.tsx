@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -78,6 +79,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       setCurrentCase(newCase);
       setMessages([]);
       setFullTranscript('');
+      console.log('Started new case:', newCase.id);
       await refreshCases();
     } catch (error) {
       console.error('Error starting new case:', error);
@@ -115,7 +117,10 @@ export function CaseProvider({ children }: { children: ReactNode }) {
   };
 
   const updateTranscript = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
-    if (!currentCase) return;
+    if (!currentCase) {
+      console.warn('No current case to update transcript for');
+      return;
+    }
 
     try {
       const timestamp = new Date().toLocaleTimeString();
@@ -126,10 +131,13 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       const newTranscript = fullTranscript + transcriptEntry;
       setFullTranscript(newTranscript);
       
+      console.log('Updating transcript for case:', currentCase.id);
+      console.log('New transcript entry:', transcriptEntry);
+      
       // Save the updated transcript to Supabase
       await caseService.updateCaseTranscript(currentCase.id, newTranscript);
       
-      console.log('Transcript updated:', transcriptEntry);
+      console.log('Transcript updated successfully');
     } catch (error) {
       console.error('Error updating transcript:', error);
       toast.error('Failed to update transcript');
