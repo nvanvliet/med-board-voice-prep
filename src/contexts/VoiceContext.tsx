@@ -19,11 +19,12 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Use our custom hooks
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
   const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService(
-    (text, source) => {
-      console.log('Adding message to case:', { text, source });
+    // Message callback - for permanent messages
+    async (text, source) => {
+      console.log('Voice service adding permanent message:', { text, source });
       
-      // Add the message to the case - this will make it persist
-      addMessage(text, source);
+      // Add the message to the case - this will make it persist in the database and UI
+      await addMessage(text, source);
       
       // Handle AI speaking state
       if (source === 'ai') {
@@ -33,7 +34,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         setTimeout(() => setIsSpeaking(false), speakingDuration);
       }
     },
-    // Transcription callback for live transcription
+    // Transcription callback - for live transcription only
     (transcription) => {
       console.log('Setting live transcription:', transcription);
       setCurrentTranscription(transcription);
@@ -48,17 +49,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   };
 
   const startConnection = async () => {
+    console.log('Starting voice connection...');
     const success = await connectToAgent();
     
     if (success) {
       setIsListening(true);
       updateAudioLevel(true);
+      console.log('Voice connection started successfully');
+    } else {
+      console.log('Failed to start voice connection');
     }
     
     return success;
   };
   
   const endConnection = async () => {
+    console.log('Ending voice connection...');
     const success = await disconnectFromAgent();
     
     if (success) {
@@ -66,6 +72,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsSpeaking(false);
       resetAudioLevel();
       setCurrentTranscription(null);
+      console.log('Voice connection ended successfully');
     }
     
     return success;
@@ -107,7 +114,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       await startConnection();
     } catch (error) {
       console.error('Error accessing microphone', error);
-      addMessage("Could not access microphone. Please check your browser permissions.", 'ai');
+      await addMessage("Could not access microphone. Please check your browser permissions.", 'ai');
       setIsListening(false);
     }
   };
@@ -129,7 +136,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsSpeaking(false);
     } catch (error) {
       console.error('Text-to-speech error', error);
-      addMessage("Failed to generate speech.", 'ai');
+      await addMessage("Failed to generate speech.", 'ai');
       setIsSpeaking(false);
     }
   };

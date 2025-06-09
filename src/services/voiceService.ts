@@ -15,17 +15,46 @@ export function useVoiceService(
       console.log('Received message from ElevenLabs:', message);
       
       // Handle different message types from ElevenLabs
-      if (message.type === 'user_transcript') {
-        // This is a user transcription (either interim or final)
-        handleUserTranscript(message.message, message.is_final);
+      if (message.type === 'user_transcript' && message.is_final) {
+        // Only process final user transcripts as permanent messages
+        console.log('Final user transcript:', message.message);
+        onMessageCallback(message.message, 'user');
+        
+        // Clear live transcription
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(null);
+        }
+      } else if (message.type === 'user_transcript' && !message.is_final) {
+        // Show interim transcription live
+        console.log('Interim user transcript:', message.message);
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(message.message);
+        }
       } else if (message.type === 'agent_response') {
-        // This is an AI response
-        handleAgentResponse(message.message);
-      } else if ('message' in message && 'source' in message) {
-        // Fallback for other message formats
-        const messageText = message.message;
-        const source = message.source;
-        handleMessageBySource(messageText, source);
+        // This is an AI response - add as permanent message
+        console.log('Agent response:', message.message);
+        onMessageCallback(message.message, 'ai');
+        
+        // Clear live transcription
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(null);
+        }
+      } else if (message.source === 'user') {
+        // Fallback for user messages
+        console.log('User message (fallback):', message.message);
+        onMessageCallback(message.message, 'user');
+        
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(null);
+        }
+      } else if (message.source === 'ai' || message.source === 'agent') {
+        // Fallback for AI messages
+        console.log('AI message (fallback):', message.message);
+        onMessageCallback(message.message, 'ai');
+        
+        if (onTranscriptionCallback) {
+          onTranscriptionCallback(null);
+        }
       }
     },
     onError: (error) => {
@@ -33,59 +62,6 @@ export function useVoiceService(
       toast.error('Error communicating with voice service');
     }
   });
-
-  const handleUserTranscript = (text: string, isFinal: boolean) => {
-    console.log('User transcript:', { text, isFinal });
-    
-    if (isFinal) {
-      // This is the final transcription - add it as a permanent message
-      onMessageCallback(text, 'user');
-      
-      // Clear any live transcription
-      if (onTranscriptionCallback) {
-        onTranscriptionCallback(null);
-      }
-    } else {
-      // This is interim transcription - show it live
-      if (onTranscriptionCallback) {
-        onTranscriptionCallback(text);
-      }
-    }
-  };
-
-  const handleAgentResponse = (text: string) => {
-    console.log('Agent response:', text);
-    
-    // Add AI response as permanent message
-    onMessageCallback(text, 'ai');
-    
-    // Clear any live transcription
-    if (onTranscriptionCallback) {
-      onTranscriptionCallback(null);
-    }
-  };
-
-  const handleMessageBySource = (messageText: string, source: string) => {
-    console.log('Processing message:', { messageText, source });
-    
-    if (source === 'user') {
-      // Add user message immediately as permanent
-      onMessageCallback(messageText, 'user');
-      
-      // Clear any live transcription
-      if (onTranscriptionCallback) {
-        onTranscriptionCallback(null);
-      }
-    } else if (source === 'agent' || source === 'ai') {
-      // Add AI message as permanent
-      onMessageCallback(messageText, 'ai');
-      
-      // Clear any live transcription
-      if (onTranscriptionCallback) {
-        onTranscriptionCallback(null);
-      }
-    }
-  };
 
   const connectToAgent = async () => {
     try {
