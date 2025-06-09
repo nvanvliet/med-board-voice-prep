@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
@@ -16,7 +15,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
   const [elevenLabsService, setElevenLabsService] = useState<ElevenLabsService | null>(null);
-  const { addMessage, updateTranscript, currentCase } = useCase();
+  
+  // Safely get case context
+  let addMessage, updateTranscript, currentCase;
+  try {
+    const caseContext = useCase();
+    addMessage = caseContext.addMessage;
+    updateTranscript = caseContext.updateTranscript;
+    currentCase = caseContext.currentCase;
+  } catch (error) {
+    console.error('VoiceContext: useCase hook error:', error);
+    // Provide fallback functions
+    addMessage = async () => {};
+    updateTranscript = async () => {};
+    currentCase = null;
+  }
   
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
 
@@ -29,6 +42,34 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
 
   const isConfigured = !!config.apiKey;
   
+  // Process audio chunk immediately when received - based on your suggested pattern
+  const processAudioChunk = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
+    if (!currentCase) {
+      console.warn('No current case available for transcript saving');
+      return;
+    }
+
+    try {
+      console.log('Processing audio chunk:', { text, sender, audioId, caseId: currentCase.id });
+      
+      // 1. Add message to conversation
+      await addMessage(text, sender);
+      
+      // 2. Save transcript to Supabase immediately with proper formatting
+      const timestamp = new Date().toLocaleTimeString();
+      const senderLabel = sender === 'user' ? 'User' : 'AI Assistant';
+      const audioIdSuffix = audioId ? ` [Audio ID: ${audioId}]` : '';
+      
+      // 3. Update transcript in real-time
+      await updateTranscript(text, sender, audioId);
+      
+      console.log('Audio chunk processed successfully');
+    } catch (error) {
+      console.error('Failed to process audio chunk:', error);
+      toast.error('Failed to save transcript');
+    }
+  };
+  
   // Initialize the ElevenLabs conversation
   const conversation = useConversation({
     onMessage: (message: any) => {
@@ -37,30 +78,24 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       // Handle different message types from ElevenLabs
       if (message.type === 'user_transcript' && message.is_final) {
         console.log('Final user transcript:', message.message);
-        addMessage(message.message, 'user');
-        // Use audio_id from ElevenLabs if available, otherwise generate one
         const audioId = message.audio_id || Date.now().toString();
-        updateTranscript(message.message, 'user', audioId);
+        processAudioChunk(message.message, 'user', audioId);
         setCurrentTranscription(null);
       } else if (message.type === 'user_transcript' && !message.is_final) {
         console.log('Interim user transcript:', message.message);
         setCurrentTranscription(message.message);
       } else if (message.type === 'agent_response') {
         console.log('Agent response:', message.message);
-        addMessage(message.message, 'ai');
-        updateTranscript(message.message, 'ai');
+        processAudioChunk(message.message, 'ai');
         setCurrentTranscription(null);
       } else if (message.source === 'user') {
         console.log('User message (fallback):', message.message);
-        addMessage(message.message, 'user');
-        // Use audio_id from ElevenLabs if available, otherwise generate one
         const audioId = message.audio_id || Date.now().toString();
-        updateTranscript(message.message, 'user', audioId);
+        processAudioChunk(message.message, 'user', audioId);
         setCurrentTranscription(null);
       } else if (message.source === 'ai' || message.source === 'agent') {
         console.log('AI message (fallback):', message.message);
-        addMessage(message.message, 'ai');
-        updateTranscript(message.message, 'ai');
+        processAudioChunk(message.message, 'ai');
         setCurrentTranscription(null);
       }
     },
@@ -94,8 +129,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     try {
       const result = await elevenLabsService.convertSpeechToText(audioBlob, config.modelId);
       if (result.text && result.text.trim()) {
-        // Store transcript with audio ID if available
-        await updateTranscript(result.text.trim(), 'user', Date.now().toString());
+        // Process the transcript immediately
+        await processAudioChunk(result.text.trim(), 'user', Date.now().toString());
         return result.text.trim();
       }
     } catch (error) {
