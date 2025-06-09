@@ -1,14 +1,18 @@
 
 import { Button } from '@/components/ui/button';
 import { useCase } from '@/contexts/CaseContext';
+import { useVoice } from '@/contexts/VoiceContext';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
+  const { connectToAgent } = useVoice();
 
   const handleStartExam = async () => {
     console.log('Start Exam button clicked');
     // Start a new case first
     await startNewCase();
+    // Then connect to the ElevenLabs agent
+    await connectToAgent();
   };
 
   return (
