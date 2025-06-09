@@ -7,7 +7,6 @@ import { useVoice } from '@/contexts/VoiceContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
-import { FileText } from 'lucide-react';
 
 export default function HomePage() {
   const { user } = useAuth();
@@ -35,16 +34,6 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col medical-bg">
       <Navbar />
-      
-      {/* Temporary link to view Case 5 transcript */}
-      <div className="p-4 border-b bg-blue-50">
-        <Button asChild variant="outline" size="sm">
-          <Link to="/transcript" className="flex items-center gap-2">
-            <FileText size={16} />
-            View Case 5 Transcript
-          </Link>
-        </Button>
-      </div>
       
       <div className="flex-1">
         {!currentCase ? (

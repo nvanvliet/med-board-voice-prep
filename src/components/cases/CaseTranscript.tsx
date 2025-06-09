@@ -1,9 +1,12 @@
 
 import { Button } from '@/components/ui/button';
 import { Case } from '@/types';
-import { useState } from 'react';
-import { ArrowLeft, Download, Heart, Edit, Save, Check, X } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { ArrowLeft, Download, Heart, Edit, Check, X, Copy } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Card } from '@/components/ui/card';
+import { caseService } from '@/services/caseService';
+import { toast } from 'sonner';
 
 interface CaseTranscriptProps {
   caseItem: Case;
@@ -23,6 +26,28 @@ export default function CaseTranscript({
   const date = new Date(caseItem.date).toLocaleDateString();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(caseItem.title);
+  const [transcript, setTranscript] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchTranscript = async () => {
+      try {
+        const caseData = await caseService.getCase(caseItem.id);
+        if (caseData) {
+          setTranscript(caseData.transcript || 'No transcript available for this case');
+        } else {
+          setTranscript('Case not found');
+        }
+      } catch (error) {
+        console.error('Error fetching transcript:', error);
+        setTranscript('Error loading transcript');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTranscript();
+  }, [caseItem.id]);
   
   const handleSaveTitle = () => {
     if (editedTitle.trim() && onUpdateTitle) {
@@ -34,6 +59,28 @@ export default function CaseTranscript({
   const handleCancelEdit = () => {
     setEditedTitle(caseItem.title);
     setIsEditing(false);
+  };
+
+  const copyToClipboard = () => {
+    if (transcript) {
+      navigator.clipboard.writeText(transcript);
+      toast.success('Transcript copied to clipboard');
+    }
+  };
+
+  const downloadTranscript = () => {
+    if (transcript) {
+      const blob = new Blob([transcript], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${caseItem.title.replace(/\s+/g, '-').toLowerCase()}-transcript.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Transcript downloaded');
+    }
   };
   
   return (
@@ -117,17 +164,33 @@ export default function CaseTranscript({
         <p className="text-sm text-muted-foreground">{date}</p>
       </div>
       
-      <div className="space-y-4 max-h-[60vh] overflow-y-auto border rounded-md p-4 text-center">
-        <div className="py-12">
-          <h3 className="text-xl font-medium mb-4">Case Summary</h3>
-          <p className="text-muted-foreground">
-            This case contains {caseItem.messages.length} messages.
-          </p>
-          <p className="mt-4 text-sm text-muted-foreground">
-            You can export this case to view the full transcript.
-          </p>
+      <Card className="p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">Full Transcript</h3>
+          <div className="flex gap-2">
+            <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={loading || !transcript}>
+              <Copy size={16} className="mr-2" />
+              Copy
+            </Button>
+            <Button variant="outline" size="sm" onClick={downloadTranscript} disabled={loading || !transcript}>
+              <Download size={16} className="mr-2" />
+              Download
+            </Button>
+          </div>
         </div>
-      </div>
+        
+        {loading ? (
+          <div className="p-8 text-center text-muted-foreground">
+            Loading transcript...
+          </div>
+        ) : (
+          <div className="bg-muted p-4 rounded-md max-h-96 overflow-y-auto">
+            <pre className="whitespace-pre-wrap text-sm font-mono">
+              {transcript}
+            </pre>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import App from './App.tsx';
 import Index from './pages/Index.tsx';
 import AuthPage from './pages/AuthPage.tsx';
 import NotFound from './pages/NotFound.tsx';
-import TranscriptPage from './pages/TranscriptPage.tsx';
 import './index.css';
 
 const router = createBrowserRouter([
@@ -21,10 +20,6 @@ const router = createBrowserRouter([
       {
         path: 'auth',
         element: <AuthPage />
-      },
-      {
-        path: 'transcript',
-        element: <TranscriptPage />
       },
       {
         path: '*',
