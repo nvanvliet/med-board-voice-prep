@@ -5,6 +5,7 @@ import { useCase } from '@/contexts/CaseContext';
 import { defaultVoiceConfig, ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
 import { useConversation } from '@11labs/react';
+import { ElevenLabsService } from '@/services/elevenLabsService';
 import { toast } from 'sonner';
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -14,11 +15,18 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
-  const { addMessage, updateTranscript } = useCase();
+  const [elevenLabsService, setElevenLabsService] = useState<ElevenLabsService | null>(null);
+  const { addMessage, updateTranscript, currentCase } = useCase();
   
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
 
-  // For now, we'll consider it configured if we have an API key
+  // Initialize ElevenLabs service when API key changes
+  React.useEffect(() => {
+    if (config.apiKey) {
+      setElevenLabsService(new ElevenLabsService(config.apiKey));
+    }
+  }, [config.apiKey]);
+
   const isConfigured = !!config.apiKey;
   
   // Initialize the ElevenLabs conversation
@@ -30,7 +38,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       if (message.type === 'user_transcript' && message.is_final) {
         console.log('Final user transcript:', message.message);
         addMessage(message.message, 'user');
-        updateTranscript(message.message, 'user');
+        updateTranscript(message.message, 'user', message.audio_id);
         setCurrentTranscription(null);
       } else if (message.type === 'user_transcript' && !message.is_final) {
         console.log('Interim user transcript:', message.message);
@@ -42,7 +50,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       } else if (message.source === 'user') {
         console.log('User message (fallback):', message.message);
         addMessage(message.message, 'user');
-        updateTranscript(message.message, 'user');
+        updateTranscript(message.message, 'user', message.audio_id);
         setCurrentTranscription(null);
       } else if (message.source === 'ai' || message.source === 'agent') {
         console.log('AI message (fallback):', message.message);
@@ -69,6 +77,27 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setCurrentTranscription(null);
     }
   });
+
+  // Manual transcript generation using ElevenLabs API
+  const generateTranscriptFromAudio = async (audioBlob: Blob): Promise<string | null> => {
+    if (!elevenLabsService || !currentCase) {
+      console.warn('ElevenLabs service not initialized or no current case');
+      return null;
+    }
+
+    try {
+      const result = await elevenLabsService.convertSpeechToText(audioBlob, config.modelId);
+      if (result.text && result.text.trim()) {
+        // Store transcript with audio ID if available
+        await updateTranscript(result.text.trim(), 'user', Date.now().toString());
+        return result.text.trim();
+      }
+    } catch (error) {
+      console.error('Error generating transcript:', error);
+      toast.error('Failed to generate transcript');
+    }
+    return null;
+  };
   
   const setApiKey = (apiKey: string) => {
     const newConfig = { ...config, apiKey };
@@ -158,7 +187,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       speak,
       connectToAgent: startConnection,
       disconnectFromAgent: endConnection,
-      toggleMicrophone
+      toggleMicrophone,
+      generateTranscriptFromAudio
     }}>
       {children}
     </VoiceContext.Provider>

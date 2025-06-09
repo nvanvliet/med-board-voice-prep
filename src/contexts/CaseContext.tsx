@@ -18,7 +18,7 @@ interface CaseContextType {
   updateCaseTitle: (caseId: string, newTitle: string) => Promise<void>;
   favoriteCases: Case[];
   refreshCases: () => Promise<void>;
-  updateTranscript: (text: string, sender: 'user' | 'ai') => Promise<void>;
+  updateTranscript: (text: string, sender: 'user' | 'ai', audioId?: string) => Promise<void>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -114,13 +114,14 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateTranscript = async (text: string, sender: 'user' | 'ai') => {
+  const updateTranscript = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
     if (!currentCase) return;
 
     try {
       const timestamp = new Date().toLocaleTimeString();
       const senderLabel = sender === 'user' ? 'User' : 'AI Assistant';
-      const transcriptEntry = `[${timestamp}] ${senderLabel}: ${text}\n`;
+      const audioIdSuffix = audioId ? ` [Audio ID: ${audioId}]` : '';
+      const transcriptEntry = `[${timestamp}] ${senderLabel}: ${text}${audioIdSuffix}\n`;
       
       const newTranscript = fullTranscript + transcriptEntry;
       setFullTranscript(newTranscript);

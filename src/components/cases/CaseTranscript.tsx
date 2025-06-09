@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Case } from '@/types';
 import { useState, useEffect } from 'react';
@@ -32,12 +31,9 @@ export default function CaseTranscript({
   useEffect(() => {
     const fetchTranscript = async () => {
       try {
-        const caseData = await caseService.getCase(caseItem.id);
-        if (caseData) {
-          setTranscript(caseData.transcript || 'No transcript available for this case');
-        } else {
-          setTranscript('Case not found');
-        }
+        setLoading(true);
+        const transcriptData = await caseService.getCaseTranscript(caseItem.id);
+        setTranscript(transcriptData || 'No transcript available for this case');
       } catch (error) {
         console.error('Error fetching transcript:', error);
         setTranscript('Error loading transcript');
@@ -166,7 +162,7 @@ export default function CaseTranscript({
       
       <Card className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">Full Transcript</h3>
+          <h3 className="text-lg font-medium">Full Transcript with Audio IDs</h3>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={copyToClipboard} disabled={loading || !transcript}>
               <Copy size={16} className="mr-2" />

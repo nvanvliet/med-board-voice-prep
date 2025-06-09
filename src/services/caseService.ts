@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { DatabaseCase, DatabaseCaseMessage } from '@/types/database';
 import { Case, Message } from '@/types';
@@ -83,10 +82,28 @@ export const caseService = {
   async updateCaseTranscript(caseId: string, transcript: string): Promise<void> {
     const { error } = await supabase
       .from('cases')
-      .update({ transcript })
+      .update({ 
+        transcript,
+        updated_at: new Date().toISOString()
+      })
       .eq('id', caseId);
 
     if (error) throw error;
+  },
+
+  async getCaseTranscript(caseId: string): Promise<string | null> {
+    const { data, error } = await supabase
+      .from('cases')
+      .select('transcript')
+      .eq('id', caseId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') return null;
+      throw error;
+    }
+    
+    return data?.transcript || null;
   },
 
   convertDatabaseCaseToCase(dbCase: DatabaseCase, messages: DatabaseCaseMessage[] = []): Case {

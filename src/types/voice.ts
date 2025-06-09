@@ -15,6 +15,7 @@ export interface VoiceContextType {
   connectToAgent: () => Promise<boolean>;
   disconnectFromAgent: () => Promise<boolean>;
   toggleMicrophone: () => void;
+  generateTranscriptFromAudio?: (audioBlob: Blob) => Promise<string | null>;
 }
 
 export interface ConversationMessage {
