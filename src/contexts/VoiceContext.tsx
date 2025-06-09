@@ -20,18 +20,22 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
   const { connectToAgent, disconnectFromAgent, toggleMicrophoneVolume } = useVoiceService(
     (text, source) => {
+      console.log('Adding message to case:', { text, source });
       // Handle messages from the voice service
       if (source === 'user') {
         addMessage(text, 'user');
       } else {
         addMessage(text, 'ai');
+        // Show that AI is speaking when we receive an AI message
         setIsSpeaking(true);
-        // Simulate AI speaking duration based on text length
-        setTimeout(() => setIsSpeaking(false), Math.min(text.length * 100, 5000));
+        // Simulate AI speaking duration based on text length (minimum 2 seconds, max 8 seconds)
+        const speakingDuration = Math.max(2000, Math.min(text.length * 80, 8000));
+        setTimeout(() => setIsSpeaking(false), speakingDuration);
       }
     },
-    // Transcription callback
+    // Transcription callback - this shows live transcription
     (transcription) => {
+      console.log('Setting transcription:', transcription);
       setCurrentTranscription(transcription);
     }
   );

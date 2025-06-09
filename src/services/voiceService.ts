@@ -16,7 +16,6 @@ export function useVoiceService(
       
       // Check if message has correct structure
       if ('message' in message && 'source' in message) {
-        // Handle the message based on its source (user or system)
         const messageText = message.message;
         const source = message.source;
         
@@ -30,34 +29,27 @@ export function useVoiceService(
   });
 
   const handleMessageBySource = (messageText: string, source: string) => {
-    // Check if it's a user message and handle transcription
+    console.log('Processing message:', { messageText, source });
+    
     if (source === 'user') {
-      // Show live transcription for interim results
+      // For user messages, show live transcription first
       if (onTranscriptionCallback) {
         onTranscriptionCallback(messageText);
       }
       
-      // Check if it's a final transcription
-      const isFinal = messageText.trim().endsWith('.') || 
-                      messageText.trim().endsWith('?') || 
-                      messageText.trim().endsWith('!') ||
-                      messageText.trim().length > 10; // Consider longer messages as likely final
-      
-      if (isFinal) {
-        // Final user transcript - add to messages and clear transcription
+      // After a short delay, convert to final message and clear transcription
+      setTimeout(() => {
         onMessageCallback(messageText, 'user');
         if (onTranscriptionCallback) {
           onTranscriptionCallback(null);
         }
-      }
-    } 
-    // Handle messages from the system (anything not from user)
-    else if (source !== 'user') {
-      // Clear any pending transcription when AI responds
+      }, 1000); // Give 1 second to see the transcription
+      
+    } else {
+      // For AI messages, clear any pending transcription and add as final message
       if (onTranscriptionCallback) {
         onTranscriptionCallback(null);
       }
-      // Convert any non-user message to our internal message format
       onMessageCallback(messageText, 'ai');
     }
   };
