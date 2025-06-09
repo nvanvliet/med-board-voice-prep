@@ -31,7 +31,6 @@ export default function ConversationEmpty() {
 
       <div className="text-center text-muted-foreground">
         <p>Click "Start Exam" to begin your oral board examination</p>
-        <p className="text-sm mt-2">The voice assistant will be ready once you start</p>
       </div>
     </div>
   );
