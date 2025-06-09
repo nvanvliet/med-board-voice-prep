@@ -2,9 +2,9 @@
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
-import { defaultVoiceConfig } from '@/config/voiceConfig';
+import { defaultVoiceConfig, ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
-import { SpeechToTextService } from '@/services/speechToTextService';
+import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
@@ -14,7 +14,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
-  const [speechToTextService, setSpeechToTextService] = useState<SpeechToTextService | null>(null);
   const { addMessage, updateTranscript } = useCase();
   
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
@@ -22,64 +21,92 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // For now, we'll consider it configured if we have an API key
   const isConfigured = !!config.apiKey;
   
+  // Initialize the ElevenLabs conversation
+  const conversation = useConversation({
+    onMessage: (message: any) => {
+      console.log('Received message from ElevenLabs:', message);
+      
+      // Handle different message types from ElevenLabs
+      if (message.type === 'user_transcript' && message.is_final) {
+        console.log('Final user transcript:', message.message);
+        addMessage(message.message, 'user');
+        updateTranscript(message.message, 'user');
+        setCurrentTranscription(null);
+      } else if (message.type === 'user_transcript' && !message.is_final) {
+        console.log('Interim user transcript:', message.message);
+        setCurrentTranscription(message.message);
+      } else if (message.type === 'agent_response') {
+        console.log('Agent response:', message.message);
+        addMessage(message.message, 'ai');
+        setCurrentTranscription(null);
+      } else if (message.source === 'user') {
+        console.log('User message (fallback):', message.message);
+        addMessage(message.message, 'user');
+        updateTranscript(message.message, 'user');
+        setCurrentTranscription(null);
+      } else if (message.source === 'ai' || message.source === 'agent') {
+        console.log('AI message (fallback):', message.message);
+        addMessage(message.message, 'ai');
+        setCurrentTranscription(null);
+      }
+    },
+    onError: (error) => {
+      console.error('ElevenLabs agent error:', error);
+      toast.error('Error communicating with voice service');
+    },
+    onConnect: () => {
+      setIsListening(true);
+      updateAudioLevel(true);
+      toast.success('Connected to voice agent', {
+        position: 'top-center',
+        duration: 2000,
+      });
+    },
+    onDisconnect: () => {
+      setIsListening(false);
+      setIsSpeaking(false);
+      resetAudioLevel();
+      setCurrentTranscription(null);
+    }
+  });
+  
   const setApiKey = (apiKey: string) => {
     const newConfig = { ...config, apiKey };
     setConfig(newConfig);
-    
-    // Create new speech service with the API key
-    if (apiKey) {
-      setSpeechToTextService(new SpeechToTextService(apiKey));
-    }
   };
 
   const startConnection = async () => {
-    if (!speechToTextService) {
+    if (!config.apiKey) {
       toast.error('Please set your ElevenLabs API key first');
       return false;
     }
 
     try {
-      await speechToTextService.startRecording((text, isFinal) => {
-        console.log('Transcription received:', { text, isFinal });
-        
-        if (isFinal) {
-          // Final transcription - add as permanent message and clear live transcription
-          addMessage(text, 'user');
-          updateTranscript(text, 'user');
-          setCurrentTranscription(null);
-        } else {
-          // Interim transcription - show live
-          setCurrentTranscription(text);
-        }
-      });
-
-      setIsListening(true);
-      updateAudioLevel(true);
+      // Request microphone permission before connecting
+      await navigator.mediaDevices.getUserMedia({ audio: true });
       
-      toast.success('Recording started', {
-        position: 'top-center',
-        duration: 2000,
+      // Connect to the ElevenLabs agent
+      await conversation.startSession({
+        agentId: ELEVEN_LABS_AGENT_ID
       });
       
       return true;
     } catch (error) {
-      console.error('Failed to start recording:', error);
-      toast.error('Failed to start recording. Please check microphone permissions.');
+      console.error('Failed to connect to agent:', error);
+      toast.error('Failed to connect to voice agent. Please check microphone permissions.');
       return false;
     }
   };
   
   const endConnection = async () => {
-    if (speechToTextService) {
-      speechToTextService.stopRecording();
+    try {
+      setCurrentTranscription(null);
+      await conversation.endSession();
+      return true;
+    } catch (error) {
+      console.error('Error disconnecting:', error);
+      return false;
     }
-    
-    setIsListening(false);
-    setIsSpeaking(false);
-    resetAudioLevel();
-    setCurrentTranscription(null);
-    
-    return true;
   };
 
   const toggleMicrophone = () => {
@@ -122,7 +149,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       config,
       isConfigured,
       isListening,
-      isSpeaking,
+      isSpeaking: conversation.isSpeaking || isSpeaking,
       audioLevel,
       currentTranscription,
       setApiKey,

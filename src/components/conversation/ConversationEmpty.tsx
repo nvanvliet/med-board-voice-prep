@@ -6,7 +6,15 @@ import ApiKeyPrompt from '@/components/voice/ApiKeyPrompt';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
-  const { isConfigured } = useVoice();
+  const { isConfigured, connectToAgent } = useVoice();
+
+  const handleStartExam = async () => {
+    // Start a new case first
+    startNewCase();
+    
+    // Then connect to the ElevenLabs agent
+    await connectToAgent();
+  };
 
   if (!isConfigured) {
     return (
@@ -21,7 +29,7 @@ export default function ConversationEmpty() {
       <Button 
         size="lg" 
         className="text-lg px-8 py-4 h-auto"
-        onClick={startNewCase}
+        onClick={handleStartExam}
       >
         Start Exam
       </Button>
