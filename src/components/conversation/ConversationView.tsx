@@ -1,18 +1,34 @@
 
 import { useEffect, useRef } from 'react';
 import { useCase } from '@/contexts/CaseContext';
+import { useVoice } from '@/contexts/VoiceContext';
 import MessageBubble from './MessageBubble';
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
+import { toast } from 'sonner';
 
 export default function ConversationView() {
   const { messages, endCurrentCase, currentCase, isLoading } = useCase();
+  const { disconnectFromAgent } = useVoice();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  const handleEndConversation = async () => {
+    // Disconnect from voice agent first
+    await disconnectFromAgent();
+    
+    // Then end the conversation case
+    endCurrentCase();
+    
+    toast.info('Conversation ended', {
+      position: 'top-center',
+      duration: 2000,
+    });
+  };
 
   if (isLoading) {
     return (
@@ -59,7 +75,7 @@ export default function ConversationView() {
         <Button
           variant="destructive"
           className="w-full"
-          onClick={endCurrentCase}
+          onClick={handleEndConversation}
         >
           End Conversation
         </Button>

@@ -19,7 +19,6 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
     isListening, 
     isSpeaking, 
     audioLevel, 
-    connectToAgent, 
     disconnectFromAgent,
     toggleMicrophone
   } = useVoice();
@@ -39,10 +38,17 @@ export default function ConversationFooter({ onEndConversation }: ConversationFo
     }
   };
   
-  const handleEndConversation = () => {
-    // Disconnect from agent before ending the conversation
-    disconnectFromAgent();
+  const handleEndConversation = async () => {
+    // Disconnect from voice agent first
+    await disconnectFromAgent();
+    
+    // Then end the conversation case
     onEndConversation();
+    
+    toast.info('Conversation ended', {
+      position: 'top-center',
+      duration: 2000,
+    });
   };
   
   const handleMicToggle = () => {
