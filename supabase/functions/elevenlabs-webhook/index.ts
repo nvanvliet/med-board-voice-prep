@@ -25,6 +25,38 @@ interface ElevenLabsWebhookPayload {
   }
 }
 
+// Function to verify webhook signature
+async function verifySignature(payload: string, signature: string, secret: string): Promise<boolean> {
+  try {
+    const encoder = new TextEncoder()
+    const key = await crypto.subtle.importKey(
+      'raw',
+      encoder.encode(secret),
+      { name: 'HMAC', hash: 'SHA-256' },
+      false,
+      ['sign']
+    )
+    
+    const expectedSignature = await crypto.subtle.sign(
+      'HMAC',
+      key,
+      encoder.encode(payload)
+    )
+    
+    const expectedHex = Array.from(new Uint8Array(expectedSignature))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('')
+    
+    // ElevenLabs sends signature in format "sha256=<hex>"
+    const receivedHex = signature.replace('sha256=', '')
+    
+    return expectedHex === receivedHex
+  } catch (error) {
+    console.error('Error verifying signature:', error)
+    return false
+  }
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -41,8 +73,34 @@ serve(async (req) => {
   try {
     console.log('ElevenLabs webhook received')
     
+    // Get the raw payload for signature verification
+    const rawPayload = await req.text()
+    
+    // Verify webhook signature
+    const signature = req.headers.get('x-elevenlabs-signature')
+    const webhookSecret = 'wsec_ae43f60c85406fbe1cb94d9785592e1a3413674a385ac7757857c05cb93958b7'
+    
+    if (!signature) {
+      console.error('Missing signature header')
+      return new Response('Missing signature', { 
+        status: 401, 
+        headers: corsHeaders 
+      })
+    }
+    
+    const isValidSignature = await verifySignature(rawPayload, signature, webhookSecret)
+    if (!isValidSignature) {
+      console.error('Invalid signature')
+      return new Response('Invalid signature', { 
+        status: 401, 
+        headers: corsHeaders 
+      })
+    }
+    
+    console.log('Signature verified successfully')
+    
     // Parse the webhook payload
-    const payload: ElevenLabsWebhookPayload = await req.json()
+    const payload: ElevenLabsWebhookPayload = JSON.parse(rawPayload)
     console.log('Webhook payload:', payload)
 
     // Only process completed requests
