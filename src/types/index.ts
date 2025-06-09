@@ -18,6 +18,7 @@ export interface Case {
   date: string; // ISO string
   messages: Message[];
   favorite?: boolean; // New property for favorite cases
+  conversationId?: string; // ElevenLabs conversation ID
 }
 
 export interface AuthContextType {
