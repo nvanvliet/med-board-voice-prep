@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
@@ -86,8 +87,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         console.log('✅ Final user transcript - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
-        console.log('🧹 Clearing live transcription after final user transcript');
-        setCurrentTranscription(null);
+        console.log('🔄 Keeping transcription after final user transcript');
+        // Don't clear transcription - we want to save everything
       } else if (message.type === 'user_transcript' && !message.is_final) {
         console.log('⏳ Interim user transcript - showing as live transcription:', message.message);
         console.log('📝 Setting currentTranscription to:', message.message);
@@ -95,19 +96,19 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       } else if (message.type === 'agent_response') {
         console.log('🤖 Agent response - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
-        console.log('🔄 Keeping live transcription after agent response (not clearing)');
-        // Don't clear transcription - let user continue speaking
+        console.log('🔄 Keeping transcription after agent response');
+        // Don't clear transcription - we want to save everything
       } else if (message.source === 'user' && message.message) {
         console.log('👤 User message (fallback) - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
-        console.log('🧹 Clearing live transcription after user message');
-        setCurrentTranscription(null);
+        console.log('🔄 Keeping transcription after user message');
+        // Don't clear transcription - we want to save everything
       } else if ((message.source === 'ai' || message.source === 'agent') && message.message) {
         console.log('🤖 AI message (fallback) - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
-        console.log('🔄 Keeping live transcription after AI message (not clearing)');
-        // Don't clear transcription - let user continue speaking
+        console.log('🔄 Keeping transcription after AI message');
+        // Don't clear transcription - we want to save everything
       } else {
         console.log('❓ Unhandled message type/source:', {
           type: message.type,
@@ -134,8 +135,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsListening(false);
       setIsSpeaking(false);
       resetAudioLevel();
-      console.log('🧹 Clearing transcription on disconnect');
-      setCurrentTranscription(null);
+      console.log('💾 Preserving transcription on disconnect - not clearing');
+      // Don't clear transcription - we want to save everything
     }
   });
 
