@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
@@ -46,13 +47,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   
   // Process audio chunk immediately when received - this adds messages to the chat
   const processAudioChunk = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
+    console.log('🎯 processAudioChunk called:', { text, sender, audioId, hasCurrentCase: !!currentCase });
+    
     if (!currentCase || !text.trim()) {
-      console.warn('No current case available or empty text for message saving');
+      console.warn('⚠️ No current case available or empty text for message saving');
       return;
     }
 
     try {
-      console.log('Processing audio chunk for chat display:', { text, sender, audioId, caseId: currentCase.id });
+      console.log('📝 Processing audio chunk for chat display:', { text, sender, audioId, caseId: currentCase.id });
       
       // Add message to conversation chat immediately
       await addMessage(text.trim(), sender);
@@ -60,9 +63,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       // Also update transcript for record keeping
       await updateTranscript(text.trim(), sender, audioId);
       
-      console.log('Audio chunk processed and displayed in chat successfully');
+      console.log('✅ Audio chunk processed and displayed in chat successfully');
     } catch (error) {
-      console.error('Failed to process audio chunk for chat:', error);
+      console.error('❌ Failed to process audio chunk for chat:', error);
       toast.error('Failed to save message to chat');
     }
   };
@@ -70,37 +73,56 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   // Initialize the ElevenLabs conversation
   const conversation = useConversation({
     onMessage: (message: any) => {
-      console.log('Received message from ElevenLabs:', message);
+      console.log('🎤 Received message from ElevenLabs:', message);
+      console.log('🔍 Message details:', {
+        type: message.type,
+        source: message.source,
+        is_final: message.is_final,
+        messageText: message.message,
+        messageLength: message.message?.length || 0
+      });
       
       // Handle different message types from ElevenLabs and display them in chat
       if (message.type === 'user_transcript' && message.is_final) {
-        console.log('Final user transcript - adding to chat:', message.message);
+        console.log('✅ Final user transcript - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
+        console.log('🧹 Clearing live transcription after final transcript');
         setCurrentTranscription(null);
       } else if (message.type === 'user_transcript' && !message.is_final) {
-        console.log('Interim user transcript - showing as live transcription:', message.message);
+        console.log('⏳ Interim user transcript - showing as live transcription:', message.message);
+        console.log('📝 Setting currentTranscription to:', message.message);
         setCurrentTranscription(message.message);
       } else if (message.type === 'agent_response') {
-        console.log('Agent response - adding to chat:', message.message);
+        console.log('🤖 Agent response - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
+        console.log('🧹 Clearing live transcription after agent response');
         setCurrentTranscription(null);
       } else if (message.source === 'user' && message.message) {
-        console.log('User message (fallback) - adding to chat:', message.message);
+        console.log('👤 User message (fallback) - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
+        console.log('🧹 Clearing live transcription after user message');
         setCurrentTranscription(null);
       } else if ((message.source === 'ai' || message.source === 'agent') && message.message) {
-        console.log('AI message (fallback) - adding to chat:', message.message);
+        console.log('🤖 AI message (fallback) - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
+        console.log('🧹 Clearing live transcription after AI message');
         setCurrentTranscription(null);
+      } else {
+        console.log('❓ Unhandled message type/source:', {
+          type: message.type,
+          source: message.source,
+          hasMessage: !!message.message
+        });
       }
     },
     onError: (error) => {
-      console.error('ElevenLabs agent error:', error);
+      console.error('❌ ElevenLabs agent error:', error);
       toast.error('Error communicating with voice service');
     },
     onConnect: () => {
+      console.log('🔗 Connected to ElevenLabs agent');
       setIsListening(true);
       updateAudioLevel(true);
       toast.success('Connected to voice agent', {
@@ -109,9 +131,11 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       });
     },
     onDisconnect: () => {
+      console.log('🔌 Disconnected from ElevenLabs agent');
       setIsListening(false);
       setIsSpeaking(false);
       resetAudioLevel();
+      console.log('🧹 Clearing transcription on disconnect');
       setCurrentTranscription(null);
     }
   });
@@ -149,6 +173,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
 
     try {
+      console.log('🚀 Starting ElevenLabs connection...');
       // Request microphone permission before connecting
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -157,15 +182,17 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
         agentId: ELEVEN_LABS_AGENT_ID
       });
       
+      console.log('📞 ElevenLabs session started with conversation ID:', conversationId);
+      
       // Store the conversation ID in the current case
       if (conversationId && updateConversationId) {
-        console.log('Setting conversation ID:', conversationId);
+        console.log('💾 Setting conversation ID in case:', conversationId);
         await updateConversationId(conversationId);
       }
       
       return true;
     } catch (error) {
-      console.error('Failed to connect to agent:', error);
+      console.error('❌ Failed to connect to agent:', error);
       toast.error('Failed to connect to voice agent. Please check microphone permissions.');
       return false;
     }
@@ -173,11 +200,14 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   
   const endConnection = async () => {
     try {
+      console.log('🛑 Ending ElevenLabs connection...');
+      console.log('🧹 Clearing transcription before disconnect');
       setCurrentTranscription(null);
       await conversation.endSession();
+      console.log('✅ ElevenLabs session ended successfully');
       return true;
     } catch (error) {
-      console.error('Error disconnecting:', error);
+      console.error('❌ Error disconnecting:', error);
       return false;
     }
   };
@@ -216,6 +246,15 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsSpeaking(false);
     }
   };
+
+  // Add effect to log currentTranscription changes
+  React.useEffect(() => {
+    console.log('📊 currentTranscription state changed:', {
+      value: currentTranscription,
+      length: currentTranscription?.length || 0,
+      isListening
+    });
+  }, [currentTranscription, isListening]);
 
   return (
     <VoiceContext.Provider value={{

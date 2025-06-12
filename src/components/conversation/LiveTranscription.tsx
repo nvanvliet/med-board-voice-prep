@@ -4,9 +4,19 @@ import { useVoice } from '@/contexts/VoiceContext';
 export default function LiveTranscription() {
   const { currentTranscription, isListening } = useVoice();
 
+  console.log('🎭 LiveTranscription render:', {
+    currentTranscription,
+    transcriptionLength: currentTranscription?.length || 0,
+    isListening,
+    shouldShow: !!(isListening && currentTranscription)
+  });
+
   if (!isListening || !currentTranscription) {
+    console.log('🚫 LiveTranscription: Not showing (isListening:', isListening, ', hasTranscription:', !!currentTranscription, ')');
     return null;
   }
+
+  console.log('✅ LiveTranscription: Showing transcription:', currentTranscription);
 
   return (
     <div className="p-3 mx-4 mb-2 bg-gray-100 border-l-4 border-blue-500 rounded-r-lg">
