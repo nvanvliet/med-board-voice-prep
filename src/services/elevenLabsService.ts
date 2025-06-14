@@ -68,4 +68,21 @@ export class ElevenLabsService {
 
     return await response.json();
   }
+
+  async getConversationStatus(conversationId: string): Promise<any> {
+    const response = await fetch(`https://api.elevenlabs.io/v1/convai/conversations/${conversationId}`, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': this.apiKey,
+        'Accept': 'application/json'
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs Conversation Status API error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
 }

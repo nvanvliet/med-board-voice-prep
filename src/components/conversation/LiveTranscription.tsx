@@ -1,42 +1,53 @@
 
+import React, { useEffect, useState } from 'react';
+import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
+import { ElevenLabsService } from '@/services/elevenLabsService';
+import { defaultVoiceConfig } from '@/config/voiceConfig';
 
 export default function LiveTranscription() {
-  const { currentTranscription, isListening } = useVoice();
+  const { currentCase } = useCase();
+  const { isListening } = useVoice();
+  const [liveTranscription, setLiveTranscription] = useState<string | null>(null);
 
-  console.log('🎭 LiveTranscription render:', {
-    currentTranscription,
-    transcriptionLength: currentTranscription?.length || 0,
-    isListening,
-    shouldShow: isListening
-  });
+  useEffect(() => {
+    let polling: NodeJS.Timeout | null = null;
+    let service: ElevenLabsService | null = null;
 
-  if (!isListening) {
-    console.log('🚫 LiveTranscription: Not showing (isListening:', isListening, ')');
-    return null;
-  }
+    async function poll() {
+      if (!currentCase?.conversationId || !isListening) return;
+      try {
+        if (!service) service = new ElevenLabsService(defaultVoiceConfig.apiKey);
+        const state = await service.getConversationStatus(currentCase.conversationId);
+        // state may have a property like "pending_transcript" or similar, adjust if field is different
+        if (state?.pending_transcript) {
+          setLiveTranscription(state.pending_transcript);
+        } else {
+          setLiveTranscription(null);
+        }
+      } catch (err) {
+        // Don't spam errors.
+        setLiveTranscription(null);
+      }
+    }
 
-  console.log('✅ LiveTranscription: Showing transcription area. Current text:', currentTranscription);
+    if (currentCase?.conversationId && isListening) {
+      // Start polling
+      polling = setInterval(() => {
+        poll();
+      }, 1000);
+    }
+    return () => {
+      if (polling) clearInterval(polling);
+    };
+  }, [currentCase?.conversationId, isListening]);
+
+  if (!currentCase?.conversationId || !isListening) return null;
+  if (!liveTranscription) return null;
 
   return (
-    <div className="p-3 mx-4 mb-2 bg-gray-100 border-l-4 border-blue-500 rounded-r-lg">
-      <div className="flex items-center gap-2">
-        <div className="flex space-x-1">
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.2s' }}></div>
-          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
-        </div>
-        <span className="text-sm text-gray-600 italic">
-          {currentTranscription ? 'Transcribing...' : 'Listening...'}
-        </span>
-      </div>
-      {currentTranscription ? (
-        <p className="text-sm text-gray-800 mt-1">{currentTranscription}</p>
-      ) : (
-        <p className="text-sm text-gray-500 mt-1 italic">
-          Speak now to see your words transcribed in real-time.
-        </p>
-      )}
+    <div className="mt-2 animate-pulse px-2 py-1 rounded text-muted-foreground bg-background/70 border border-muted max-w-2xl mx-auto text-center">
+      {liveTranscription}
     </div>
   );
 }
