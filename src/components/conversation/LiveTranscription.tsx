@@ -19,20 +19,18 @@ export default function LiveTranscription() {
       try {
         if (!service) service = new ElevenLabsService(defaultVoiceConfig.apiKey);
         const state = await service.getConversationStatus(currentCase.conversationId);
-        // state may have a property like "pending_transcript" or similar, adjust if field is different
-        if (state?.pending_transcript) {
-          setLiveTranscription(state.pending_transcript);
+        // Use "transcript" property, not "pending_transcript"
+        if (state?.transcript) {
+          setLiveTranscription(state.transcript);
         } else {
           setLiveTranscription(null);
         }
       } catch (err) {
-        // Don't spam errors.
         setLiveTranscription(null);
       }
     }
 
     if (currentCase?.conversationId && isListening) {
-      // Start polling
       polling = setInterval(() => {
         poll();
       }, 1000);
