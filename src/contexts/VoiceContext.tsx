@@ -171,14 +171,20 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     setConfig(newConfig);
   };
 
-  const startConnection = async () => {
+  const startConnection = async (caseId?: string) => {
     if (!config.apiKey) {
       toast.error('Please set your ElevenLabs API key first');
       return false;
     }
 
+    const targetCaseId = caseId || currentCase?.id;
+    if (!targetCaseId) {
+      toast.error('No active case found to start the connection.');
+      return false;
+    }
+
     try {
-      console.log('🚀 Starting ElevenLabs connection...');
+      console.log('🚀 Starting ElevenLabs connection for case:', targetCaseId);
       // Request microphone permission before connecting
       await navigator.mediaDevices.getUserMedia({ audio: true });
       
@@ -191,8 +197,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       
       // Store the conversation ID in the current case
       if (conversationId && updateConversationId) {
-        console.log('💾 Setting conversation ID in case:', conversationId);
-        await updateConversationId(conversationId);
+        console.log('💾 Setting conversation ID in case:', targetCaseId);
+        await updateConversationId(conversationId, targetCaseId);
       }
       
       return true;

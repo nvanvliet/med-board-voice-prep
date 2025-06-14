@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { Case, Message, User } from '@/types';
 import { useAuth } from './AuthContext';
@@ -10,7 +9,7 @@ interface CaseContextType {
   currentCase: Case | null;
   messages: Message[];
   isLoading: boolean;
-  startNewCase: () => Promise<void>;
+  startNewCase: () => Promise<Case | void>;
   endCurrentCase: () => void;
   saveCurrentCase: (title?: string) => Promise<void>;
   addMessage: (text: string, sender: 'user' | 'ai') => Promise<void>;
@@ -20,7 +19,7 @@ interface CaseContextType {
   favoriteCases: Case[];
   refreshCases: () => Promise<void>;
   updateTranscript: (text: string, sender: 'user' | 'ai', audioId?: string) => Promise<void>;
-  updateConversationId: (conversationId: string) => Promise<void>;
+  updateConversationId: (conversationId: string, caseId?: string) => Promise<void>;
 }
 
 const CaseContext = createContext<CaseContextType | undefined>(undefined);
@@ -66,7 +65,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     .filter(c => c.favorite)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  const startNewCase = async () => {
+  const startNewCase = async (): Promise<Case | void> => {
     if (!user) {
       toast.error('You must be signed in to start a case');
       return;
@@ -82,6 +81,7 @@ export function CaseProvider({ children }: { children: ReactNode }) {
       setFullTranscript('');
       console.log('Started new case:', newCase.id);
       await refreshCases();
+      return newCase;
     } catch (error) {
       console.error('Error starting new case:', error);
       toast.error('Failed to start new case');
@@ -145,21 +145,24 @@ export function CaseProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateConversationId = async (conversationId: string) => {
-    if (!currentCase) {
+  const updateConversationId = async (conversationId: string, caseId?: string) => {
+    const targetCaseId = caseId || currentCase?.id;
+    if (!targetCaseId) {
       console.warn('No current case to update conversation ID for');
       return;
     }
 
     try {
-      console.log('Updating conversation ID for case:', currentCase.id, 'with ID:', conversationId);
+      console.log('Updating conversation ID for case:', targetCaseId, 'with ID:', conversationId);
       
       // Save the conversation ID to Supabase
-      await caseService.updateCaseConversationId(currentCase.id, conversationId);
+      await caseService.updateCaseConversationId(targetCaseId, conversationId);
       
       // Update the current case in state
       setCurrentCase(prev => {
-        if (!prev) return null;
+        if (!prev || prev.id !== targetCaseId) {
+          return prev;
+        }
         return {
           ...prev,
           conversationId

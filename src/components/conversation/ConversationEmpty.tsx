@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button';
 import { useCase } from '@/contexts/CaseContext';
 import { useVoice } from '@/contexts/VoiceContext';
+import { toast } from 'sonner';
 
 export default function ConversationEmpty() {
   const { startNewCase } = useCase();
@@ -10,9 +11,14 @@ export default function ConversationEmpty() {
   const handleStartExam = async () => {
     console.log('Start Exam button clicked');
     // Start a new case first
-    await startNewCase();
-    // Then connect to the ElevenLabs agent
-    await connectToAgent();
+    const newCase = await startNewCase();
+    
+    // Then connect to the ElevenLabs agent if case creation was successful
+    if (newCase) {
+      await connectToAgent(newCase.id);
+    } else {
+      toast.error("Failed to start exam because a new case could not be created.");
+    }
   };
 
   return (
