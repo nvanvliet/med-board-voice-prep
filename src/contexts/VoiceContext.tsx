@@ -1,11 +1,32 @@
+
 import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { VoiceContextType } from '@/types/voice';
 import { useCase } from '@/contexts/CaseContext';
 import { defaultVoiceConfig, ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
 import { useConversation } from '@11labs/react';
 import { ElevenLabsService } from '@/services/elevenLabsService';
 import { toast } from 'sonner';
+
+export interface VoiceContextType {
+  config: {
+    apiKey: string | null;
+    voiceId: string;
+    modelId: string;
+  };
+  isConfigured: boolean;
+  isListening: boolean;
+  isSpeaking: boolean;
+  audioLevel: number;
+  currentTranscription: string | null;
+  setApiKey: (apiKey: string) => void;
+  startListening: () => Promise<void>;
+  stopListening: () => void;
+  speak: (text: string) => Promise<void>;
+  connectToAgent: (caseId?: string) => Promise<boolean>;
+  disconnectFromAgent: () => Promise<boolean>;
+  toggleMicrophone: () => void;
+  generateTranscriptFromAudio: (audioBlob: Blob) => Promise<string | null>;
+}
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
