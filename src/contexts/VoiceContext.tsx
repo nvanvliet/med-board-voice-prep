@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useCase } from '@/contexts/CaseContext';
 import { defaultVoiceConfig, ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
@@ -6,13 +5,10 @@ import { useAudioVisualization } from '@/hooks/useAudioVisualization';
 import { useConversation } from '@11labs/react';
 import { ElevenLabsService } from '@/services/elevenLabsService';
 import { toast } from 'sonner';
+import { ElevenLabsConfig } from '@/types';
 
 export interface VoiceContextType {
-  config: {
-    apiKey: string | null;
-    voiceId: string;
-    modelId: string;
-  };
+  config: ElevenLabsConfig;
   isConfigured: boolean;
   isListening: boolean;
   isSpeaking: boolean;
