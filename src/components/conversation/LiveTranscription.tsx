@@ -27,11 +27,15 @@ export default function LiveTranscription() {
           <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse" style={{ animationDelay: '0.4s' }}></div>
         </div>
         <span className="text-sm text-gray-600 italic">
-          {currentTranscription ? 'Speaking...' : 'Listening...'}
+          {currentTranscription ? 'Transcribing...' : 'Listening...'}
         </span>
       </div>
-      {currentTranscription && (
+      {currentTranscription ? (
         <p className="text-sm text-gray-800 mt-1">{currentTranscription}</p>
+      ) : (
+        <p className="text-sm text-gray-500 mt-1 italic">
+          Speak now to see your words transcribed in real-time.
+        </p>
       )}
     </div>
   );
