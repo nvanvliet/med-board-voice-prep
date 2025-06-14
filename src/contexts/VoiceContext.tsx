@@ -82,30 +82,37 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       });
       
       // Handle different message types from ElevenLabs and display them in chat
-      if (message.type === 'user_transcript' && message.is_final) {
-        console.log('✅ Final user transcript - adding to chat:', message.message);
-        const audioId = message.audio_id || Date.now().toString();
-        processAudioChunk(message.message, 'user', audioId);
-        console.log('🧹 Clearing live transcription after final user transcript.');
-        setCurrentTranscription(null);
-      } else if (message.type === 'user_transcript' && !message.is_final) {
-        console.log('⏳ Interim user transcript - showing as live transcription:', message.message);
+      if (message.type === 'user_transcript') {
+        // For any user transcript (interim or final), update the live transcription view.
         setCurrentTranscription(message.message);
+        
+        // If it's a final transcript, process it for the chat history.
+        if (message.is_final) {
+          console.log('✅ Final user transcript - adding to chat:', message.message);
+          const audioId = message.audio_id || Date.now().toString();
+          if (message.message.trim()) {
+            processAudioChunk(message.message, 'user', audioId);
+          }
+          // The transcription will be cleared upon agent response.
+        }
       } else if (message.type === 'agent_response') {
         console.log('🤖 Agent response - adding to chat:', message.message);
-        processAudioChunk(message.message, 'ai');
-        console.log('🧹 Clearing live transcription after agent response.');
+        if (message.message.trim()) {
+          processAudioChunk(message.message, 'ai');
+        }
+        // Once the AI responds, the user's turn is complete.
+        // Clearing the live transcription makes way for the next utterance.
         setCurrentTranscription(null);
       } else if (message.source === 'user' && message.message) {
         console.log('👤 User message (fallback) - adding to chat:', message.message);
         const audioId = message.audio_id || Date.now().toString();
         processAudioChunk(message.message, 'user', audioId);
-        console.log('🧹 Clearing live transcription after user message fallback.');
+        // After processing, clear the live transcription.
         setCurrentTranscription(null);
       } else if ((message.source === 'ai' || message.source === 'agent') && message.message) {
         console.log('🤖 AI message (fallback) - adding to chat:', message.message);
         processAudioChunk(message.message, 'ai');
-        console.log('🧹 Clearing live transcription after AI message fallback.');
+        // After processing, clear the live transcription.
         setCurrentTranscription(null);
       } else {
         console.log('❓ Unhandled message type/source:', {
@@ -133,8 +140,8 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       setIsListening(false);
       setIsSpeaking(false);
       resetAudioLevel();
-      console.log('🧹 Clearing transcription on disconnect');
-      setCurrentTranscription(null);
+      // Per user request, we no longer clear transcription on disconnect.
+      // The conversation view will persist.
     }
   });
 
