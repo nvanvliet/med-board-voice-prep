@@ -1,4 +1,3 @@
-
 export class ElevenLabsService {
   private apiKey: string;
 
@@ -48,6 +47,23 @@ export class ElevenLabsService {
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`ElevenLabs Speech-to-Text API error: ${response.status} - ${errorText}`);
+    }
+
+    return await response.json();
+  }
+
+  async getConversationHistory(conversationId: string): Promise<any> {
+    const response = await fetch(`https://api.elevenlabs.io/v1/conversations/${conversationId}/history`, {
+      method: 'GET',
+      headers: {
+        'xi-api-key': this.apiKey,
+        'Accept': 'application/json'
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`ElevenLabs Conversation History API error: ${response.status} - ${errorText}`);
     }
 
     return await response.json();

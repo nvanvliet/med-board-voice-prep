@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Case } from '@/types';
 import { useState, useEffect } from 'react';
@@ -7,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { caseService } from '@/services/caseService';
 import { toast } from 'sonner';
+import { ElevenLabsService } from '@/services/elevenLabsService';
+import { defaultVoiceConfig } from '@/config/voiceConfig';
 
 interface CaseTranscriptProps {
   caseItem: Case;
@@ -31,20 +32,44 @@ export default function CaseTranscript({
   
   useEffect(() => {
     const fetchTranscript = async () => {
-      try {
-        setLoading(true);
-        const transcriptData = await caseService.getCaseTranscript(caseItem.id);
-        setTranscript(transcriptData || 'No transcript available for this case');
-      } catch (error) {
-        console.error('Error fetching transcript:', error);
-        setTranscript('Error loading transcript');
-      } finally {
-        setLoading(false);
+      setLoading(true);
+      if (caseItem.conversationId) {
+        try {
+          const elevenLabsService = new ElevenLabsService(defaultVoiceConfig.apiKey);
+          const history = await elevenLabsService.getConversationHistory(caseItem.conversationId);
+          
+          const formattedTranscript = history.messages
+            .map((msg: any) => {
+              const sender = msg.role === 'user' ? 'User' : 'AI Assistant';
+              const text = msg.content.find((c: any) => c.type === 'text')?.text || '';
+              // Timestamp from ElevenLabs is in seconds, convert to milliseconds
+              const msgDate = new Date(msg.timestamp * 1000);
+              return `[${msgDate.toLocaleTimeString()}] ${sender}: ${text}`;
+            })
+            .join('\n\n');
+          
+          setTranscript(formattedTranscript || 'No transcript available from ElevenLabs.');
+        } catch (error) {
+          console.error('Error fetching transcript from ElevenLabs:', error);
+          setTranscript('Error loading transcript from ElevenLabs. It might have expired.');
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        try {
+          const transcriptData = await caseService.getCaseTranscript(caseItem.id);
+          setTranscript(transcriptData || 'No transcript available for this case.');
+        } catch (error) {
+          console.error('Error fetching transcript:', error);
+          setTranscript('Error loading transcript');
+        } finally {
+          setLoading(false);
+        }
       }
     };
 
     fetchTranscript();
-  }, [caseItem.id]);
+  }, [caseItem.id, caseItem.conversationId]);
   
   const handleSaveTitle = () => {
     if (editedTitle.trim() && onUpdateTitle) {
