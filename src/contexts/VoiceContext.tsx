@@ -1,39 +1,23 @@
+// Core context logic, provider, and composition imports
 import React, { createContext, useContext, useState, ReactNode } from 'react';
 import { useCase } from '@/contexts/CaseContext';
 import { defaultVoiceConfig, ELEVEN_LABS_AGENT_ID } from '@/config/voiceConfig';
 import { useAudioVisualization } from '@/hooks/useAudioVisualization';
-import { useConversation } from '@11labs/react';
 import { ElevenLabsService } from '@/services/elevenLabsService';
 import { toast } from 'sonner';
 import { ElevenLabsConfig } from '@/types';
-
-export interface VoiceContextType {
-  config: ElevenLabsConfig;
-  isConfigured: boolean;
-  isListening: boolean;
-  isSpeaking: boolean;
-  audioLevel: number;
-  currentTranscription: string | null;
-  setApiKey: (apiKey: string) => void;
-  startListening: () => Promise<void>;
-  stopListening: () => void;
-  speak: (text: string) => Promise<void>;
-  connectToAgent: (caseId?: string) => Promise<boolean>;
-  disconnectFromAgent: () => Promise<boolean>;
-  toggleMicrophone: () => void;
-  generateTranscriptFromAudio: (audioBlob: Blob) => Promise<string | null>;
-}
+import { VoiceContextType } from '@/types/voiceTypes';
+import { useVoiceAgent } from './useVoiceAgent';
 
 const VoiceContext = createContext<VoiceContextType | undefined>(undefined);
 
 export function VoiceProvider({ children }: { children: ReactNode }) {
-  const [config, setConfig] = useState(defaultVoiceConfig);
+  const [config, setConfig] = useState<ElevenLabsConfig>(defaultVoiceConfig);
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscription, setCurrentTranscription] = useState<string | null>(null);
   const [elevenLabsService, setElevenLabsService] = useState<ElevenLabsService | null>(null);
-  
-  // Safely get case context
+
   let addMessage, updateTranscript, currentCase, updateConversationId;
   try {
     const caseContext = useCase();
@@ -49,10 +33,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     currentCase = null;
     updateConversationId = async () => {};
   }
-  
+
   const { audioLevel, updateAudioLevel, resetAudioLevel } = useAudioVisualization();
 
-  // Initialize ElevenLabs service when API key changes
   React.useEffect(() => {
     if (config.apiKey) {
       setElevenLabsService(new ElevenLabsService(config.apiKey));
@@ -60,109 +43,21 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
   }, [config.apiKey]);
 
   const isConfigured = !!config.apiKey;
-  
-  // Process audio chunk immediately when received - this adds messages to the chat
-  const processAudioChunk = async (text: string, sender: 'user' | 'ai', audioId?: string) => {
-    console.log('🎯 processAudioChunk called:', { text, sender, audioId, hasCurrentCase: !!currentCase });
-    
-    if (!currentCase || !text.trim()) {
-      console.warn('⚠️ No current case available or empty text for message saving');
-      return;
-    }
 
-    try {
-      console.log('📝 Processing audio chunk for chat display:', { text, sender, audioId, caseId: currentCase.id });
-      
-      // Add message to conversation chat immediately
-      await addMessage(text.trim(), sender);
-      
-      // Also update transcript for record keeping
-      await updateTranscript(text.trim(), sender, audioId);
-      
-      console.log('✅ Audio chunk processed and displayed in chat successfully');
-    } catch (error) {
-      console.error('❌ Failed to process audio chunk for chat:', error);
-      toast.error('Failed to save message to chat');
-    }
-  };
-  
-  // Initialize the ElevenLabs conversation
-  const conversation = useConversation({
-    onMessage: (message: any) => {
-      console.log('🎤 Received message from ElevenLabs:', message);
-      console.log('🔍 Message details:', {
-        type: message.type,
-        source: message.source,
-        is_final: message.is_final,
-        messageText: message.message,
-        messageLength: message.message?.length || 0
-      });
-      
-      // Handle different message types from ElevenLabs and display them in chat
-      if (message.type === 'user_transcript') {
-        // For any user transcript (interim or final), update the live transcription view.
-        setCurrentTranscription(message.message);
-        
-        // If it's a final transcript, process it for the chat history.
-        if (message.is_final) {
-          console.log('✅ Final user transcript - adding to chat:', message.message);
-          const audioId = message.audio_id || Date.now().toString();
-          if (message.message.trim()) {
-            processAudioChunk(message.message, 'user', audioId);
-          }
-          // The transcription will be cleared upon agent response.
-        }
-      } else if (message.type === 'agent_response') {
-        console.log('🤖 Agent response - adding to chat:', message.message);
-        if (message.message.trim()) {
-          processAudioChunk(message.message, 'ai');
-        }
-        // Once the AI responds, the user's turn is complete.
-        // Clearing the live transcription makes way for the next utterance.
-        setCurrentTranscription(null);
-      } else if (message.source === 'user' && message.message) {
-        console.log('👤 User message (fallback) - adding to chat:', message.message);
-        const audioId = message.audio_id || Date.now().toString();
-        processAudioChunk(message.message, 'user', audioId);
-        // After processing, clear the live transcription.
-        setCurrentTranscription(null);
-      } else if ((message.source === 'ai' || message.source === 'agent') && message.message) {
-        console.log('🤖 AI message (fallback) - adding to chat:', message.message);
-        processAudioChunk(message.message, 'ai');
-        // After processing, clear the live transcription.
-        setCurrentTranscription(null);
-      } else {
-        console.log('❓ Unhandled message type/source:', {
-          type: message.type,
-          source: message.source,
-          hasMessage: !!message.message
-        });
-      }
-    },
-    onError: (error) => {
-      console.error('❌ ElevenLabs agent error:', error);
-      toast.error('Error communicating with voice service');
-    },
-    onConnect: () => {
-      console.log('🔗 Connected to ElevenLabs agent');
-      setIsListening(true);
-      updateAudioLevel(true);
-      toast.success('Connected to voice agent', {
-        position: 'top-center',
-        duration: 2000,
-      });
-    },
-    onDisconnect: () => {
-      console.log('🔌 Disconnected from ElevenLabs agent');
-      setIsListening(false);
-      setIsSpeaking(false);
-      resetAudioLevel();
-      // Per user request, we no longer clear transcription on disconnect.
-      // The conversation view will persist.
-    }
+  // --- Agent hook composition split out of main file for cleanliness ---
+  const conversation = useVoiceAgent({
+    config,
+    currentCase,
+    updateConversationId,
+    addMessage,
+    updateTranscript,
+    setCurrentTranscription,
+    setIsListening,
+    setIsSpeaking,
+    resetAudioLevel,
+    updateAudioLevel,
   });
 
-  // Manual transcript generation using ElevenLabs API
   const generateTranscriptFromAudio = async (audioBlob: Blob): Promise<string | null> => {
     if (!elevenLabsService || !currentCase) {
       console.warn('ElevenLabs service not initialized or no current case');
@@ -172,8 +67,9 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     try {
       const result = await elevenLabsService.convertSpeechToText(audioBlob, config.modelId);
       if (result.text && result.text.trim()) {
-        // Process the transcript immediately and add to chat
-        await processAudioChunk(result.text.trim(), 'user', Date.now().toString());
+        // Can't call processAudioChunk directly here (would require another context split)
+        await addMessage(result.text.trim(), 'user');
+        await updateTranscript(result.text.trim(), 'user', Date.now().toString());
         return result.text.trim();
       }
     } catch (error) {
@@ -182,7 +78,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
     return null;
   };
-  
+
   const setApiKey = (apiKey: string) => {
     const newConfig = { ...config, apiKey };
     setConfig(newConfig);
@@ -225,7 +121,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       return false;
     }
   };
-  
+
   const endConnection = async () => {
     try {
       console.log('🛑 Ending ElevenLabs connection...');
@@ -273,7 +169,6 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Add effect to log currentTranscription changes
   React.useEffect(() => {
     console.log('📊 currentTranscription state changed:', {
       value: currentTranscription,
@@ -297,7 +192,7 @@ export function VoiceProvider({ children }: { children: ReactNode }) {
       connectToAgent: startConnection,
       disconnectFromAgent: endConnection,
       toggleMicrophone,
-      generateTranscriptFromAudio
+      generateTranscriptFromAudio,
     }}>
       {children}
     </VoiceContext.Provider>
