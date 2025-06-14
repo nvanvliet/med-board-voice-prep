@@ -1,4 +1,3 @@
-
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/contexts/AuthContext';
@@ -56,7 +55,7 @@ export default function Navbar() {
   };
   
   return (
-    <header className="border-b bg-white">
+    <header className="border-b bg-white mb-10">
       <div className="container mx-auto flex h-16 items-center px-4">
         <Link to="/" className="flex items-center gap-2">
           <h1 className="text-xl font-semibold">Medical Oral Board Study Bot</h1>
